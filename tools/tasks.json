@@ -53,7 +53,7 @@
     "task_id": 6,
     "phase": "Phase 1 \u2014 Repository and foundation",
     "title": "Create React + TypeScript frontend skeleton",
-    "status": "not_started",
+    "status": "completed",
     "acceptance_criteria": [
       "Task output is implemented and verified"
     ],

@@ -14,7 +14,7 @@ This plan combines:
 - [ ] Task 3: Add environment-based settings and configuration management
 - [ ] Task 4: Add structured logging and global exception handling
 - [x] Task 5: Create repository interfaces and AI client dependency boundaries
-- [ ] Task 6: Create React + TypeScript frontend skeleton
+- [x] Task 6: Create React + TypeScript frontend skeleton
 - [ ] Task 7: Add frontend routing, app shell, and shared UI primitives
 - [ ] Task 8: Add root-level setup guidance and developer scripts documentation
 
