@@ -52,7 +52,7 @@ class CodexPortfolioRunner:
         extra_codex_args: list[str] | None = None,
         require_clean_git: bool = True,
         auto_commit: bool = True,
-        auto_push: bool = False,
+        auto_push: bool = True,
         dry_run: bool = False,
     ) -> None:
         self.repo_root = repo_root.resolve()
@@ -543,7 +543,7 @@ def load_verify_prompt(path_str: str) -> str:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Run Codex portfolio tasks sequentially with verification and optional git commit/push."
+        description="Run Codex portfolio tasks sequentially with verification and automatic git commit/push."
     )
     parser.add_argument(
         "--repo-root",
@@ -590,7 +590,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--push",
         action="store_true",
-        help="Push after each successful commit.",
+        help="Deprecated compatibility flag. Push is enabled by default.",
+    )
+    parser.add_argument(
+        "--no-push",
+        action="store_true",
+        help="Disable push after each successful commit.",
     )
     parser.add_argument(
         "--dry-run",
@@ -613,7 +618,7 @@ def main() -> int:
             extra_codex_args=args.codex_arg,
             require_clean_git=not args.allow_dirty_git,
             auto_commit=not args.no_commit,
-            auto_push=args.push,
+            auto_push=not args.no_push,
             dry_run=args.dry_run,
         )
         return runner.run()
