@@ -33,7 +33,7 @@
     "task_id": 4,
     "phase": "Phase 1 \u2014 Repository and foundation",
     "title": "Add structured logging and global exception handling",
-    "status": "not_started",
+    "status": "completed",
     "acceptance_criteria": [
       "Task output is implemented and verified"
     ],
