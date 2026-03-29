@@ -1,0 +1,499 @@
+[
+  {
+    "task_id": 1,
+    "phase": "Phase 1 \u2014 Repository and foundation",
+    "title": "Create production-grade backend folder structure",
+    "status": "not_started",
+    "acceptance_criteria": [
+      "backend/app structure exists and is coherent",
+      "imports are clean and runnable",
+      "no unnecessary scaffolding beyond immediate need"
+    ],
+    "notes": [
+      "This task is about structure, not feature completeness."
+    ]
+  },
+  {
+    "task_id": 2,
+    "phase": "Phase 1 \u2014 Repository and foundation",
+    "title": "Set up FastAPI application entrypoint and `/health` endpoint",
+    "status": "not_started",
+    "acceptance_criteria": [
+      "application boots without errors",
+      "GET /health returns 200 OK",
+      "startup command is documented if needed"
+    ],
+    "notes": []
+  },
+  {
+    "task_id": 3,
+    "phase": "Phase 1 \u2014 Repository and foundation",
+    "title": "Add environment-based settings and configuration management",
+    "status": "not_started",
+    "acceptance_criteria": [
+      "settings load from environment",
+      "defaults are safe for local development",
+      "configuration is centralized"
+    ],
+    "notes": []
+  },
+  {
+    "task_id": 4,
+    "phase": "Phase 1 \u2014 Repository and foundation",
+    "title": "Add structured logging and global exception handling",
+    "status": "not_started",
+    "acceptance_criteria": [
+      "logging setup is centralized",
+      "consistent error payloads exist",
+      "basic exception handling is wired"
+    ],
+    "notes": []
+  },
+  {
+    "task_id": 5,
+    "phase": "Phase 1 \u2014 Repository and foundation",
+    "title": "Create repository interfaces and AI client dependency boundaries",
+    "status": "not_started",
+    "acceptance_criteria": [
+      "route handlers do not directly call OpenAI",
+      "interfaces or abstractions exist for persistence and AI access",
+      "service wiring is clear"
+    ],
+    "notes": []
+  },
+  {
+    "task_id": 6,
+    "phase": "Phase 1 \u2014 Repository and foundation",
+    "title": "Create React + TypeScript frontend skeleton",
+    "status": "not_started",
+    "acceptance_criteria": [
+      "frontend app boots locally",
+      "base folder structure exists",
+      "no unnecessary complexity"
+    ],
+    "notes": []
+  },
+  {
+    "task_id": 7,
+    "phase": "Phase 1 \u2014 Repository and foundation",
+    "title": "Add frontend routing, app shell, and shared UI primitives",
+    "status": "not_started",
+    "acceptance_criteria": [
+      "basic routes exist",
+      "layout shell exists",
+      "shared UI primitives or placeholders are present"
+    ],
+    "notes": []
+  },
+  {
+    "task_id": 8,
+    "phase": "Phase 1 \u2014 Repository and foundation",
+    "title": "Add root-level setup guidance and developer scripts documentation",
+    "status": "not_started",
+    "acceptance_criteria": [
+      "README and docs reflect startup flow",
+      "basic developer commands are documented"
+    ],
+    "notes": []
+  },
+  {
+    "task_id": 9,
+    "phase": "Phase 2 \u2014 Backend ingestion and parsing",
+    "title": "Implement upload endpoint with file type and size validation",
+    "status": "not_started",
+    "acceptance_criteria": [
+      "supported file types are enforced",
+      "max file size is enforced",
+      "validation errors are consistent"
+    ],
+    "notes": []
+  },
+  {
+    "task_id": 10,
+    "phase": "Phase 2 \u2014 Backend ingestion and parsing",
+    "title": "Add local upload storage strategy for MVP",
+    "status": "not_started",
+    "acceptance_criteria": [
+      "uploaded files can be stored locally",
+      "storage path strategy is configurable",
+      "temporary or managed storage behavior is documented"
+    ],
+    "notes": []
+  },
+  {
+    "task_id": 11,
+    "phase": "Phase 2 \u2014 Backend ingestion and parsing",
+    "title": "Implement TXT text extraction service",
+    "status": "not_started",
+    "acceptance_criteria": [
+      "TXT files are parsed correctly",
+      "service returns normalized text output"
+    ],
+    "notes": []
+  },
+  {
+    "task_id": 12,
+    "phase": "Phase 2 \u2014 Backend ingestion and parsing",
+    "title": "Implement PDF text extraction service",
+    "status": "not_started",
+    "acceptance_criteria": [
+      "PDF text extraction works for simple text PDFs",
+      "service errors are handled cleanly"
+    ],
+    "notes": []
+  },
+  {
+    "task_id": 13,
+    "phase": "Phase 2 \u2014 Backend ingestion and parsing",
+    "title": "Implement DOCX text extraction service",
+    "status": "not_started",
+    "acceptance_criteria": [
+      "DOCX text extraction works for simple files",
+      "service errors are handled cleanly"
+    ],
+    "notes": []
+  },
+  {
+    "task_id": 14,
+    "phase": "Phase 2 \u2014 Backend ingestion and parsing",
+    "title": "Add normalized extracted document contract",
+    "status": "not_started",
+    "acceptance_criteria": [
+      "normalized contract exists",
+      "downstream services can consume one common document structure"
+    ],
+    "notes": []
+  },
+  {
+    "task_id": 15,
+    "phase": "Phase 2 \u2014 Backend ingestion and parsing",
+    "title": "Add backend tests for validation and extraction flows",
+    "status": "not_started",
+    "acceptance_criteria": [
+      "tests cover validation",
+      "tests cover extraction service behavior"
+    ],
+    "notes": []
+  },
+  {
+    "task_id": 16,
+    "phase": "Phase 3 \u2014 AI prompt contracts and analysis services",
+    "title": "Add typed OpenAI client wrapper and prompt-loading strategy",
+    "status": "not_started",
+    "acceptance_criteria": [
+      "OpenAI integration is abstracted",
+      "prompt access is centralized",
+      "typed mapping boundary exists"
+    ],
+    "notes": []
+  },
+  {
+    "task_id": 17,
+    "phase": "Phase 3 \u2014 AI prompt contracts and analysis services",
+    "title": "Implement structured summary prompt and mapping logic",
+    "status": "not_started",
+    "acceptance_criteria": [
+      "summary service returns typed structured output",
+      "prompt contract is documented or loaded cleanly"
+    ],
+    "notes": []
+  },
+  {
+    "task_id": 18,
+    "phase": "Phase 3 \u2014 AI prompt contracts and analysis services",
+    "title": "Implement clause extraction prompt and mapping logic",
+    "status": "not_started",
+    "acceptance_criteria": [
+      "clause extraction returns typed clause objects",
+      "allowed categories are enforced or normalized"
+    ],
+    "notes": []
+  },
+  {
+    "task_id": 19,
+    "phase": "Phase 3 \u2014 AI prompt contracts and analysis services",
+    "title": "Implement risk assessment prompt and mapping logic",
+    "status": "not_started",
+    "acceptance_criteria": [
+      "risk service returns typed risk flags",
+      "severity values are normalized"
+    ],
+    "notes": []
+  },
+  {
+    "task_id": 20,
+    "phase": "Phase 3 \u2014 AI prompt contracts and analysis services",
+    "title": "Add prompt contract tests using mocked OpenAI responses",
+    "status": "not_started",
+    "acceptance_criteria": [
+      "tests validate prompt output mapping",
+      "AI boundary is mocked"
+    ],
+    "notes": []
+  },
+  {
+    "task_id": 21,
+    "phase": "Phase 3 \u2014 AI prompt contracts and analysis services",
+    "title": "Implement orchestration service for full document analysis",
+    "status": "not_started",
+    "acceptance_criteria": [
+      "service composes summary, clause extraction, and risk assessment",
+      "service returns one analysis result object"
+    ],
+    "notes": []
+  },
+  {
+    "task_id": 22,
+    "phase": "Phase 3 \u2014 AI prompt contracts and analysis services",
+    "title": "Expose `POST /api/v1/documents/analyse` returning structured output",
+    "status": "not_started",
+    "acceptance_criteria": [
+      "endpoint returns typed analysis response",
+      "route delegates to service layer"
+    ],
+    "notes": []
+  },
+  {
+    "task_id": 23,
+    "phase": "Phase 3 \u2014 AI prompt contracts and analysis services",
+    "title": "Add fallback handling for malformed or partial AI responses",
+    "status": "not_started",
+    "acceptance_criteria": [
+      "partial or malformed AI output is handled safely",
+      "errors are surfaced consistently"
+    ],
+    "notes": []
+  },
+  {
+    "task_id": 24,
+    "phase": "Phase 4 \u2014 Persistence and retrieval",
+    "title": "Add SQLite models and repositories for documents and analyses",
+    "status": "not_started",
+    "acceptance_criteria": [
+      "SQLite persistence layer exists",
+      "document and analysis records can be stored"
+    ],
+    "notes": []
+  },
+  {
+    "task_id": 25,
+    "phase": "Phase 4 \u2014 Persistence and retrieval",
+    "title": "Persist successful analysis results",
+    "status": "not_started",
+    "acceptance_criteria": [
+      "analysis results are saved after success",
+      "document metadata is linked"
+    ],
+    "notes": []
+  },
+  {
+    "task_id": 26,
+    "phase": "Phase 4 \u2014 Persistence and retrieval",
+    "title": "Add endpoint to retrieve analysis by document id",
+    "status": "not_started",
+    "acceptance_criteria": [
+      "single-result retrieval endpoint works",
+      "not-found handling is consistent"
+    ],
+    "notes": []
+  },
+  {
+    "task_id": 27,
+    "phase": "Phase 4 \u2014 Persistence and retrieval",
+    "title": "Add endpoint to list recent analyses",
+    "status": "not_started",
+    "acceptance_criteria": [
+      "list endpoint returns recent items",
+      "response contract is clear"
+    ],
+    "notes": []
+  },
+  {
+    "task_id": 28,
+    "phase": "Phase 4 \u2014 Persistence and retrieval",
+    "title": "Add integration tests for persistence and retrieval flows",
+    "status": "not_started",
+    "acceptance_criteria": [
+      "tests cover save and retrieval flows"
+    ],
+    "notes": []
+  },
+  {
+    "task_id": 29,
+    "phase": "Phase 5 \u2014 Frontend analyser experience",
+    "title": "Build upload page with validation and API integration",
+    "status": "not_started",
+    "acceptance_criteria": [
+      "user can select a file",
+      "validation messages appear",
+      "API request wiring exists"
+    ],
+    "notes": []
+  },
+  {
+    "task_id": 30,
+    "phase": "Phase 5 \u2014 Frontend analyser experience",
+    "title": "Build polished results page with executive summary section",
+    "status": "not_started",
+    "acceptance_criteria": [
+      "results page renders summary cleanly",
+      "document metadata is visible"
+    ],
+    "notes": []
+  },
+  {
+    "task_id": 31,
+    "phase": "Phase 5 \u2014 Frontend analyser experience",
+    "title": "Render extracted clauses grouped by category",
+    "status": "not_started",
+    "acceptance_criteria": [
+      "clauses are grouped clearly",
+      "layout is readable"
+    ],
+    "notes": []
+  },
+  {
+    "task_id": 32,
+    "phase": "Phase 5 \u2014 Frontend analyser experience",
+    "title": "Render risk flags with severity badges and recommendations",
+    "status": "not_started",
+    "acceptance_criteria": [
+      "severity is visually distinct",
+      "recommendations are displayed"
+    ],
+    "notes": []
+  },
+  {
+    "task_id": 33,
+    "phase": "Phase 5 \u2014 Frontend analyser experience",
+    "title": "Add loading, error, and empty states",
+    "status": "not_started",
+    "acceptance_criteria": [
+      "states are clear and user friendly",
+      "UI handles failed requests gracefully"
+    ],
+    "notes": []
+  },
+  {
+    "task_id": 34,
+    "phase": "Phase 5 \u2014 Frontend analyser experience",
+    "title": "Add JSON download action for structured analysis result",
+    "status": "not_started",
+    "acceptance_criteria": [
+      "user can download result JSON",
+      "download uses current analysis data"
+    ],
+    "notes": []
+  },
+  {
+    "task_id": 35,
+    "phase": "Phase 5 \u2014 Frontend analyser experience",
+    "title": "Add recent analyses page",
+    "status": "not_started",
+    "acceptance_criteria": [
+      "recent analyses page renders list data",
+      "navigation to result detail exists"
+    ],
+    "notes": []
+  },
+  {
+    "task_id": 36,
+    "phase": "Phase 5 \u2014 Frontend analyser experience",
+    "title": "Add frontend tests for upload, result rendering, and error states",
+    "status": "not_started",
+    "acceptance_criteria": [
+      "frontend tests cover main user flows"
+    ],
+    "notes": []
+  },
+  {
+    "task_id": 37,
+    "phase": "Phase 6 \u2014 Hardening and portfolio polish",
+    "title": "Add API contract documentation with example payloads",
+    "status": "not_started",
+    "acceptance_criteria": [
+      "API docs reflect actual response shapes",
+      "examples are readable"
+    ],
+    "notes": []
+  },
+  {
+    "task_id": 38,
+    "phase": "Phase 6 \u2014 Hardening and portfolio polish",
+    "title": "Add CORS, upload size limits, and secure file handling safeguards",
+    "status": "not_started",
+    "acceptance_criteria": [
+      "CORS is configurable",
+      "size limits are enforced",
+      "file handling has basic safeguards"
+    ],
+    "notes": []
+  },
+  {
+    "task_id": 39,
+    "phase": "Phase 6 \u2014 Hardening and portfolio polish",
+    "title": "Add request correlation ids and observability notes",
+    "status": "not_started",
+    "acceptance_criteria": [
+      "request correlation id exists or is planned explicitly",
+      "docs describe observability approach"
+    ],
+    "notes": []
+  },
+  {
+    "task_id": 40,
+    "phase": "Phase 6 \u2014 Hardening and portfolio polish",
+    "title": "Add rate limiting placeholder or strategy boundary",
+    "status": "not_started",
+    "acceptance_criteria": [
+      "boundary or placeholder exists for throttling",
+      "design is documented"
+    ],
+    "notes": []
+  },
+  {
+    "task_id": 41,
+    "phase": "Phase 6 \u2014 Hardening and portfolio polish",
+    "title": "Improve automated test coverage across backend and frontend",
+    "status": "not_started",
+    "acceptance_criteria": [
+      "coverage is improved around key flows",
+      "critical logic has protection"
+    ],
+    "notes": []
+  },
+  {
+    "task_id": 42,
+    "phase": "Phase 6 \u2014 Hardening and portfolio polish",
+    "title": "Add Dockerfiles for backend and frontend",
+    "status": "not_started",
+    "acceptance_criteria": [
+      "backend Dockerfile exists",
+      "frontend Dockerfile exists",
+      "basic run instructions are documented"
+    ],
+    "notes": []
+  },
+  {
+    "task_id": 43,
+    "phase": "Phase 6 \u2014 Hardening and portfolio polish",
+    "title": "Final README polish with screenshots placeholders and demo flow",
+    "status": "not_started",
+    "acceptance_criteria": [
+      "README is polished for recruiters",
+      "demo flow is clearly explained"
+    ],
+    "notes": []
+  },
+  {
+    "task_id": 44,
+    "phase": "Phase 6 \u2014 Hardening and portfolio polish",
+    "title": "Add interview talking points and architecture trade-off summary",
+    "status": "not_started",
+    "acceptance_criteria": [
+      "interview document is present and useful",
+      "trade-offs are explicitly discussed"
+    ],
+    "notes": []
+  }
+]
