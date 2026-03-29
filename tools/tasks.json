@@ -3,7 +3,7 @@
     "task_id": 1,
     "phase": "Phase 1 \u2014 Repository and foundation",
     "title": "Create production-grade backend folder structure",
-    "status": "not_started",
+    "status": "completed",
     "acceptance_criteria": [
       "Task output is implemented and verified"
     ],
