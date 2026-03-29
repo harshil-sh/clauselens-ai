@@ -23,8 +23,6 @@ DEFAULT_VERIFY_PROMPT = (
 STATE_DIR_NAME = ".codex-runner"
 STATE_FILE_NAME = "state.json"
 LOGS_DIR_NAME = "logs"
-
-# 👇 Ignore runner internal files
 DEFAULT_IGNORE_PATTERNS = [".codex-runner/"]
 
 
@@ -102,6 +100,7 @@ class CodexPortfolioRunner:
     def run(self) -> int:
         self.logger.info("Repo root: %s", self.repo_root)
         self.logger.info("Tasks file: %s", self.tasks_file)
+        self.logger.info("Auto-commit: %s | Auto-push: %s", self.auto_commit, self.auto_push)
 
         self._validate_environment()
 
@@ -110,8 +109,7 @@ class CodexPortfolioRunner:
 
         pending = [
             t for t in tasks
-            if t.task_id not in state["completed_task_ids"]
-            and t.status != "completed"
+            if t.task_id not in state["completed_task_ids"] and t.status != "completed"
         ]
 
         if not pending:
@@ -119,176 +117,351 @@ class CodexPortfolioRunner:
             return 0
 
         tasks_to_run = pending[: self.max_tasks]
+        self.logger.info(
+            "Will run up to %d task(s): %s",
+            len(tasks_to_run),
+            ", ".join(f"{t.task_id}:{t.title}" for t in tasks_to_run),
+        )
 
         for task in tasks_to_run:
-            self.logger.info("=" * 80)
+            self.logger.info("=" * 100)
             self.logger.info("Starting Task %s - %s", task.task_id, task.title)
 
-            # 👇 capture files before task
-            files_before = set(self._get_changed_files())
+            tracked_before = set(self._get_changed_files())
 
-            # Run Codex task
+            state["current_task_id"] = task.task_id
+            state["current_task_title"] = task.title
+            state["current_stage"] = "task"
+            state["updated_at_utc"] = self._utc_now()
+            self._save_state(state)
+
             task_result = self._run_codex_step("task", task, self._build_task_prompt(task))
             if task_result["returncode"] != 0:
+                self._record_failure(
+                    state, task, "task", task_result["returncode"],
+                    task_result["stdout_log"], task_result["stderr_log"]
+                )
                 return task_result["returncode"]
 
-            # Verify
+            state["current_stage"] = "verify"
+            state["updated_at_utc"] = self._utc_now()
+            self._save_state(state)
+
             verify_result = self._run_codex_step("verify", task, self.verify_prompt)
             if verify_result["returncode"] != 0:
+                self._record_failure(
+                    state, task, "verify", verify_result["returncode"],
+                    verify_result["stdout_log"], verify_result["stderr_log"]
+                )
                 return verify_result["returncode"]
 
-            # 👇 capture files after task
-            files_after = set(self._get_changed_files())
-            changed_files = sorted(files_after - files_before)
-
-            # remove tasks.json (auto update)
-            rel_tasks = str(self.tasks_file.relative_to(self.repo_root))
-            if rel_tasks in changed_files:
-                changed_files.remove(rel_tasks)
-
-            # Commit only task-related files
+            commit_sha = None
             if self.auto_commit:
-                self._commit_task_changes(task, changed_files)
+                changed_after = set(self._get_changed_files())
+                commit_targets = sorted(changed_after - tracked_before)
+                rel_tasks_path = str(self.tasks_file.relative_to(self.repo_root))
+                if rel_tasks_path in commit_targets:
+                    commit_targets.remove(rel_tasks_path)
+                commit_sha = self._commit_task_changes(task, commit_targets)
+
+                if self.auto_push and commit_sha:
+                    self._push_current_branch()
 
             self._mark_task_complete_in_json(task.task_id)
 
             state["completed_task_ids"].append(task.task_id)
+            state["history"].append({
+                "task_id": task.task_id,
+                "task_title": task.title,
+                "completed_at_utc": self._utc_now(),
+                "task_stdout_log": task_result["stdout_log"],
+                "task_stderr_log": task_result["stderr_log"],
+                "verify_stdout_log": verify_result["stdout_log"],
+                "verify_stderr_log": verify_result["stderr_log"],
+                "commit_sha": commit_sha,
+            })
+            state["current_task_id"] = None
+            state["current_task_title"] = None
+            state["current_stage"] = None
+            state["last_failure"] = None
+            state["updated_at_utc"] = self._utc_now()
             self._save_state(state)
 
             time.sleep(1)
 
+        self.logger.info("Run finished successfully.")
         return 0
-
-    # ---------------------------
-    # Helpers
-    # ---------------------------
 
     def _validate_environment(self) -> None:
         if not self.tasks_file.exists():
             raise RunnerError(f"Tasks file not found: {self.tasks_file}")
-
         if not (self.repo_root / ".git").exists():
-            raise RunnerError("Not a git repo")
-
+            raise RunnerError(f"Repo root is not a git repo: {self.repo_root}")
         if self.require_clean_git and not self._git_is_clean():
-            raise RunnerError("Git working tree is not clean.")
+            raise RunnerError("Git working tree is not clean. Commit/stash changes first.")
+        self._check_codex_available()
+        self._check_git_available()
+
+    def _check_codex_available(self) -> None:
+        cmd = shlex.split(self.codex_cmd) + ["--help"]
+        result = subprocess.run(cmd, cwd=self.repo_root, capture_output=True, text=True, encoding="utf-8")
+        if result.returncode != 0:
+            raise RunnerError(
+                f"Unable to run Codex command '{self.codex_cmd}'. Exit code: {result.returncode}\n"
+                f"stderr: {result.stderr.strip()}"
+            )
+
+    def _check_git_available(self) -> None:
+        result = subprocess.run(["git", "--version"], cwd=self.repo_root, capture_output=True, text=True, encoding="utf-8")
+        if result.returncode != 0:
+            raise RunnerError("git is not available in this environment.")
 
     def _git_is_clean(self) -> bool:
-        result = subprocess.run(
-            ["git", "status", "--porcelain"],
-            cwd=self.repo_root,
-            capture_output=True,
-            text=True,
-        )
-        return result.stdout.strip() == ""
+        result = subprocess.run(["git", "status", "--porcelain"], cwd=self.repo_root, capture_output=True, text=True, encoding="utf-8")
+        if result.returncode != 0:
+            raise RunnerError(f"git status failed: {result.stderr.strip()}")
+        lines = [line for line in result.stdout.splitlines() if not self._is_ignored_status_line(line)]
+        return len(lines) == 0
 
     def _load_tasks(self) -> list[Task]:
-        raw = json.loads(self.tasks_file.read_text())
-        return [
-            Task(
-                task_id=item["task_id"],
-                phase=item.get("phase", ""),
-                title=item["title"],
-                status=item.get("status", ""),
-                acceptance_criteria=item.get("acceptance_criteria", []),
-                notes=item.get("notes", []),
-            )
-            for item in raw
-        ]
+        try:
+            raw = json.loads(self.tasks_file.read_text(encoding="utf-8"))
+        except json.JSONDecodeError as exc:
+            raise RunnerError(f"Invalid JSON in tasks file: {self.tasks_file}") from exc
 
-    def _load_state(self) -> dict:
-        if not self.state_file.exists():
-            return {"completed_task_ids": []}
-        return json.loads(self.state_file.read_text())
-
-    def _save_state(self, state: dict):
-        self.state_file.write_text(json.dumps(state, indent=2))
-
-    def _run_codex_step(self, step_type, task, prompt):
-        cmd = shlex.split(self.codex_cmd) + ["exec", prompt]
-
-        result = subprocess.run(
-            cmd,
-            cwd=self.repo_root,
-            capture_output=True,
-            text=True,
-        )
-
-        return {"returncode": result.returncode}
-
-    def _commit_task_changes(self, task: Task, files: list[str]):
-        if not files:
-            self.logger.info("No changes to commit.")
-            return
-
-        subprocess.run(["git", "add", "--"] + files, cwd=self.repo_root)
-
-        subprocess.run(
-            ["git", "commit", "-m", f"feat(task-{task.task_id}): {task.title}"],
-            cwd=self.repo_root,
-        )
-
-    def _mark_task_complete_in_json(self, task_id: int):
-        raw = json.loads(self.tasks_file.read_text())
+        tasks: list[Task] = []
         for item in raw:
-            if item["task_id"] == task_id:
-                item["status"] = "completed"
-        self.tasks_file.write_text(json.dumps(raw, indent=2))
+            tasks.append(
+                Task(
+                    task_id=int(item["task_id"]),
+                    phase=str(item.get("phase", "")),
+                    title=str(item["title"]),
+                    status=str(item.get("status", "not_started")),
+                    acceptance_criteria=list(item.get("acceptance_criteria", [])),
+                    notes=list(item.get("notes", [])),
+                    prompt_hint=str(item.get("prompt_hint", "")),
+                )
+            )
+        tasks.sort(key=lambda x: x.task_id)
+        return tasks
 
-    def _get_changed_files(self):
-        result = subprocess.run(
-            ["git", "status", "--porcelain"],
-            cwd=self.repo_root,
-            capture_output=True,
-            text=True,
-        )
-        files = []
-        for line in result.stdout.splitlines():
-            path = line[3:].strip()
-            if any(path.startswith(p) for p in DEFAULT_IGNORE_PATTERNS):
-                continue
-            files.append(path)
-        return files
+    def _load_state(self) -> dict[str, Any]:
+        if not self.state_file.exists():
+            state = {
+                "completed_task_ids": [],
+                "current_task_id": None,
+                "current_task_title": None,
+                "current_stage": None,
+                "last_failure": None,
+                "history": [],
+                "updated_at_utc": self._utc_now(),
+            }
+            self._save_state(state)
+            return state
+        return json.loads(self.state_file.read_text(encoding="utf-8"))
+
+    def _save_state(self, state: dict[str, Any]) -> None:
+        temp = self.state_file.with_suffix(".tmp")
+        temp.write_text(json.dumps(state, indent=2), encoding="utf-8")
+        temp.replace(self.state_file)
 
     def _build_task_prompt(self, task: Task) -> str:
-        return f"""
-Open docs/TASKS.md and execute ONLY Task {task.task_id}.
+        acceptance = "\n".join(f"- {x}" for x in task.acceptance_criteria) or "- Follow TASKS.md"
+        notes = "\n".join(f"- {x}" for x in task.notes) or "- None"
 
-Task: {task.title}
+        if task.prompt_hint.strip():
+            return (
+                f"{task.prompt_hint.strip()}\n\n"
+                "Read AGENTS.md and docs/TASKS.md first.\n"
+                f"Work only on Task {task.task_id}: {task.title}\n"
+                "Do not start later tasks.\n\n"
+                "Final output must include:\n"
+                "1. Plan\n2. Changes made\n3. Files updated\n4. Verification performed\n5. Whether the task is fully complete\n"
+            )
 
-Do not start later tasks.
+        return (
+            f"Open docs/TASKS.md and execute ONLY Task {task.task_id}.\n\n"
+            "Read docs/AGENTS.md first.\n\n"
+            f"Task title:\n{task.title}\n\n"
+            f"Phase:\n{task.phase}\n\n"
+            "Acceptance criteria:\n"
+            f"{acceptance}\n\n"
+            "Notes:\n"
+            f"{notes}\n\n"
+            "Constraints:\n"
+            "- Do not start any later task.\n"
+            "- Keep changes minimal and production-minded.\n"
+            "- Run relevant verification for this task.\n\n"
+            "Final output:\n"
+            "1. Plan\n2. Changes made\n3. Files updated\n4. Verification performed\n5. Whether the task is fully complete\n"
+        )
 
-Output:
-1. Plan
-2. Changes
-3. Files
-4. Verification
-5. Completed?
-"""
+    def _run_codex_step(self, step_type: str, task: Task, prompt: str) -> dict[str, Any]:
+        timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+        safe_name = self._slugify(task.title)
+        stdout_log = self.logs_dir / f"{task.task_id:03d}-{safe_name}-{step_type}-{timestamp}.stdout.log"
+        stderr_log = self.logs_dir / f"{task.task_id:03d}-{safe_name}-{step_type}-{timestamp}.stderr.log"
+        cmd = shlex.split(self.codex_cmd) + ["exec"] + self.extra_codex_args + [prompt]
+
+        self.logger.info("Running Codex step: %s", step_type)
+        self.logger.info("Command: %s", " ".join(shlex.quote(c) for c in cmd[:-1]) + " '<prompt omitted>'")
+
+        if self.dry_run:
+            stdout_log.write_text("[DRY RUN] No stdout.\n", encoding="utf-8")
+            stderr_log.write_text("[DRY RUN] No stderr.\n", encoding="utf-8")
+            return {"returncode": 0, "stdout_log": str(stdout_log), "stderr_log": str(stderr_log)}
+
+        with stdout_log.open("w", encoding="utf-8") as out, stderr_log.open("w", encoding="utf-8") as err:
+            result = subprocess.run(cmd, cwd=self.repo_root, stdout=out, stderr=err, text=True, encoding="utf-8")
+
+        self.logger.info("Codex step finished with exit code %s.", result.returncode)
+        return {"returncode": result.returncode, "stdout_log": str(stdout_log), "stderr_log": str(stderr_log)}
+
+    def _commit_task_changes(self, task: Task, commit_targets: list[str]) -> str | None:
+        if self.dry_run:
+            return "dry-run-no-commit"
+        if not commit_targets:
+            self.logger.info("No task-specific file changes detected after Task %s. No commit created.", task.task_id)
+            return None
+
+        self._run_cmd(["git", "add", "--"] + commit_targets, "git add failed")
+        staged = self._run_cmd(["git", "diff", "--cached", "--name-only"], "git diff --cached failed", capture_output=True).strip()
+        if not staged:
+            self.logger.info("No staged changes after git add. No commit created.")
+            return None
+
+        commit_message = f"feat(task-{task.task_id}): {task.title}"
+        self._run_cmd(["git", "commit", "-m", commit_message], "git commit failed")
+        sha = self._run_cmd(["git", "rev-parse", "HEAD"], "git rev-parse failed", capture_output=True).strip()
+        self.logger.info("Created commit %s for Task %s.", sha, task.task_id)
+        return sha
+
+    def _push_current_branch(self) -> None:
+        if self.dry_run:
+            return
+        self._run_cmd(["git", "push"], "git push failed")
+
+    def _mark_task_complete_in_json(self, task_id: int) -> None:
+        raw = json.loads(self.tasks_file.read_text(encoding="utf-8"))
+        found = False
+        for item in raw:
+            if int(item.get("task_id")) == task_id:
+                item["status"] = "completed"
+                found = True
+                break
+        if not found:
+            raise RunnerError(f"Task {task_id} not found in tasks JSON.")
+        if self.dry_run:
+            return
+        temp = self.tasks_file.with_suffix(".tmp")
+        temp.write_text(json.dumps(raw, indent=2), encoding="utf-8")
+        temp.replace(self.tasks_file)
+
+    def _record_failure(self, state: dict[str, Any], task: Task, stage: str, exit_code: int, stdout_log: str, stderr_log: str) -> None:
+        self.logger.error("Task %s failed during %s with exit code %s", task.task_id, stage, exit_code)
+        state["last_failure"] = {
+            "task_id": task.task_id,
+            "task_title": task.title,
+            "stage": stage,
+            "exit_code": exit_code,
+            "timestamp_utc": self._utc_now(),
+            "stdout_log": stdout_log,
+            "stderr_log": stderr_log,
+        }
+        state["updated_at_utc"] = self._utc_now()
+        self._save_state(state)
+
+    def _get_changed_files(self) -> list[str]:
+        output = self._run_cmd(["git", "status", "--porcelain"], "git status failed", capture_output=True)
+        files = []
+        for line in output.splitlines():
+            if self._is_ignored_status_line(line):
+                continue
+            path = line[3:].strip()
+            if " -> " in path:
+                path = path.split(" -> ", 1)[1].strip()
+            if path:
+                files.append(path)
+        return files
+
+    def _is_ignored_status_line(self, line: str) -> bool:
+        path = line[3:].strip()
+        if " -> " in path:
+            path = path.split(" -> ", 1)[1].strip()
+        return any(path == patt.rstrip("/") or path.startswith(patt.rstrip("/") + "/") for patt in DEFAULT_IGNORE_PATTERNS)
+
+    def _run_cmd(self, cmd: list[str], error_message: str, capture_output: bool = False) -> str:
+        result = subprocess.run(cmd, cwd=self.repo_root, capture_output=True, text=True, encoding="utf-8")
+        if result.returncode != 0:
+            raise RunnerError(
+                f"{error_message}\nCommand: {' '.join(shlex.quote(c) for c in cmd)}\n"
+                f"stdout: {result.stdout.strip()}\nstderr: {result.stderr.strip()}"
+            )
+        return result.stdout if capture_output else ""
+
+    @staticmethod
+    def _slugify(value: str) -> str:
+        cleaned = []
+        for ch in value.lower():
+            if ch.isalnum():
+                cleaned.append(ch)
+            elif ch in {" ", "-", "_", "—"}:
+                cleaned.append("-")
+        return "".join(cleaned).strip("-") or "task"
+
+    @staticmethod
+    def _utc_now() -> str:
+        return datetime.now(timezone.utc).isoformat()
 
 
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--repo-root", default=".")
-    parser.add_argument("--tasks-file", default="tools/tasks.json")
-    parser.add_argument("--max-tasks", type=int, default=5)
-    parser.add_argument("--verify-prompt-file", default="")
-    parser.add_argument("--codex-cmd", default="codex")
+def load_verify_prompt(path_str: str) -> str:
+    if not path_str:
+        return DEFAULT_VERIFY_PROMPT
+    path = Path(path_str)
+    if not path.exists():
+        raise RunnerError(f"Verify prompt file not found: {path}")
+    return path.read_text(encoding="utf-8").strip()
 
-    args = parser.parse_args()
 
-    verify_prompt = DEFAULT_VERIFY_PROMPT
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Run Codex portfolio tasks sequentially with verification and optional git commit/push.")
+    parser.add_argument("--repo-root", default=".", help="Path to git repo root. Default: current directory.")
+    parser.add_argument("--tasks-file", default="tools/tasks.json", help="Path to tasks JSON. Default: tools/tasks.json")
+    parser.add_argument("--max-tasks", type=int, default=5, help="Maximum number of pending tasks to run. Default: 5.")
+    parser.add_argument("--verify-prompt-file", default="", help="Optional path to verification prompt file.")
+    parser.add_argument("--codex-cmd", default="codex", help="Codex executable. Default: codex")
+    parser.add_argument("--codex-arg", action="append", default=[], help="Extra argument passed to 'codex exec'. Can be repeated.")
+    parser.add_argument("--allow-dirty-git", action="store_true", help="Allow start even if git working tree is dirty.")
+    parser.add_argument("--no-commit", action="store_true", help="Disable auto-commit after successful verification.")
+    parser.add_argument("--push", action="store_true", help="Push after each successful commit.")
+    parser.add_argument("--dry-run", action="store_true", help="Do not run Codex or git write actions.")
+    return parser.parse_args()
 
-    runner = CodexPortfolioRunner(
-        repo_root=Path(args.repo_root),
-        tasks_file=Path(args.tasks_file),
-        max_tasks=args.max_tasks,
-        verify_prompt=verify_prompt,
-        codex_cmd=args.codex_cmd,
-    )
 
-    sys.exit(runner.run())
+def main() -> int:
+    args = parse_args()
+    try:
+        verify_prompt = load_verify_prompt(args.verify_prompt_file)
+        runner = CodexPortfolioRunner(
+            repo_root=Path(args.repo_root),
+            tasks_file=Path(args.tasks_file),
+            max_tasks=args.max_tasks,
+            verify_prompt=verify_prompt,
+            codex_cmd=args.codex_cmd,
+            extra_codex_args=args.codex_arg,
+            require_clean_git=not args.allow_dirty_git,
+            auto_commit=not args.no_commit,
+            auto_push=args.push,
+            dry_run=args.dry_run,
+        )
+        return runner.run()
+    except RunnerError as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 2
+    except KeyboardInterrupt:
+        print("Interrupted by user.", file=sys.stderr)
+        return 130
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

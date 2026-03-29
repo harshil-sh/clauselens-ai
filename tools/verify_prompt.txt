@@ -1,0 +1,4 @@
+Run tests and verify only the changes made for the last task.
+Do not modify code unless something is broken.
+Summarize verification results.
+If tests fail, explain exactly what failed.
