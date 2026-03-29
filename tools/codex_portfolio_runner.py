@@ -52,7 +52,7 @@ class CodexPortfolioRunner:
         extra_codex_args: list[str] | None = None,
         require_clean_git: bool = True,
         auto_commit: bool = True,
-        auto_push: bool = True,
+        auto_push: bool = False,
         dry_run: bool = False,
     ) -> None:
         self.repo_root = repo_root.resolve()
@@ -138,8 +138,12 @@ class CodexPortfolioRunner:
             task_result = self._run_codex_step("task", task, self._build_task_prompt(task))
             if task_result["returncode"] != 0:
                 self._record_failure(
-                    state, task, "task", task_result["returncode"],
-                    task_result["stdout_log"], task_result["stderr_log"]
+                    state,
+                    task,
+                    "task",
+                    task_result["returncode"],
+                    task_result["stdout_log"],
+                    task_result["stderr_log"],
                 )
                 return task_result["returncode"]
 
@@ -150,24 +154,32 @@ class CodexPortfolioRunner:
             verify_result = self._run_codex_step("verify", task, self.verify_prompt)
             if verify_result["returncode"] != 0:
                 self._record_failure(
-                    state, task, "verify", verify_result["returncode"],
-                    verify_result["stdout_log"], verify_result["stderr_log"]
+                    state,
+                    task,
+                    "verify",
+                    verify_result["returncode"],
+                    verify_result["stdout_log"],
+                    verify_result["stderr_log"],
                 )
                 return verify_result["returncode"]
+
+            # Mark task complete BEFORE commit so tasks.json is included in the commit/push
+            self._mark_task_complete_in_json(task.task_id)
 
             commit_sha = None
             if self.auto_commit:
                 changed_after = set(self._get_changed_files())
                 commit_targets = sorted(changed_after - tracked_before)
+
                 rel_tasks_path = str(self.tasks_file.relative_to(self.repo_root))
-                if rel_tasks_path in commit_targets:
-                    commit_targets.remove(rel_tasks_path)
+                if rel_tasks_path not in commit_targets:
+                    commit_targets.append(rel_tasks_path)
+
                 commit_sha = self._commit_task_changes(task, commit_targets)
 
                 if self.auto_push and commit_sha:
+                    self.logger.info("Pushing commit for Task %s.", task.task_id)
                     self._push_current_branch()
-
-            self._mark_task_complete_in_json(task.task_id)
 
             state["completed_task_ids"].append(task.task_id)
             state["history"].append({
@@ -195,16 +207,25 @@ class CodexPortfolioRunner:
     def _validate_environment(self) -> None:
         if not self.tasks_file.exists():
             raise RunnerError(f"Tasks file not found: {self.tasks_file}")
+
         if not (self.repo_root / ".git").exists():
             raise RunnerError(f"Repo root is not a git repo: {self.repo_root}")
+
         if self.require_clean_git and not self._git_is_clean():
             raise RunnerError("Git working tree is not clean. Commit/stash changes first.")
+
         self._check_codex_available()
         self._check_git_available()
 
     def _check_codex_available(self) -> None:
         cmd = shlex.split(self.codex_cmd) + ["--help"]
-        result = subprocess.run(cmd, cwd=self.repo_root, capture_output=True, text=True, encoding="utf-8")
+        result = subprocess.run(
+            cmd,
+            cwd=self.repo_root,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+        )
         if result.returncode != 0:
             raise RunnerError(
                 f"Unable to run Codex command '{self.codex_cmd}'. Exit code: {result.returncode}\n"
@@ -212,14 +233,27 @@ class CodexPortfolioRunner:
             )
 
     def _check_git_available(self) -> None:
-        result = subprocess.run(["git", "--version"], cwd=self.repo_root, capture_output=True, text=True, encoding="utf-8")
+        result = subprocess.run(
+            ["git", "--version"],
+            cwd=self.repo_root,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+        )
         if result.returncode != 0:
             raise RunnerError("git is not available in this environment.")
 
     def _git_is_clean(self) -> bool:
-        result = subprocess.run(["git", "status", "--porcelain"], cwd=self.repo_root, capture_output=True, text=True, encoding="utf-8")
+        result = subprocess.run(
+            ["git", "status", "--porcelain"],
+            cwd=self.repo_root,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+        )
         if result.returncode != 0:
             raise RunnerError(f"git status failed: {result.stderr.strip()}")
+
         lines = [line for line in result.stdout.splitlines() if not self._is_ignored_status_line(line)]
         return len(lines) == 0
 
@@ -231,17 +265,21 @@ class CodexPortfolioRunner:
 
         tasks: list[Task] = []
         for item in raw:
-            tasks.append(
-                Task(
-                    task_id=int(item["task_id"]),
-                    phase=str(item.get("phase", "")),
-                    title=str(item["title"]),
-                    status=str(item.get("status", "not_started")),
-                    acceptance_criteria=list(item.get("acceptance_criteria", [])),
-                    notes=list(item.get("notes", [])),
-                    prompt_hint=str(item.get("prompt_hint", "")),
+            try:
+                tasks.append(
+                    Task(
+                        task_id=int(item["task_id"]),
+                        phase=str(item.get("phase", "")),
+                        title=str(item["title"]),
+                        status=str(item.get("status", "not_started")),
+                        acceptance_criteria=list(item.get("acceptance_criteria", [])),
+                        notes=list(item.get("notes", [])),
+                        prompt_hint=str(item.get("prompt_hint", "")),
+                    )
                 )
-            )
+            except (KeyError, TypeError, ValueError) as exc:
+                raise RunnerError(f"Invalid task entry: {item!r}") from exc
+
         tasks.sort(key=lambda x: x.task_id)
         return tasks
 
@@ -258,7 +296,11 @@ class CodexPortfolioRunner:
             }
             self._save_state(state)
             return state
-        return json.loads(self.state_file.read_text(encoding="utf-8"))
+
+        try:
+            return json.loads(self.state_file.read_text(encoding="utf-8"))
+        except json.JSONDecodeError as exc:
+            raise RunnerError(f"Invalid state file JSON: {self.state_file}") from exc
 
     def _save_state(self, state: dict[str, Any]) -> None:
         temp = self.state_file.with_suffix(".tmp")
@@ -309,30 +351,69 @@ class CodexPortfolioRunner:
         if self.dry_run:
             stdout_log.write_text("[DRY RUN] No stdout.\n", encoding="utf-8")
             stderr_log.write_text("[DRY RUN] No stderr.\n", encoding="utf-8")
-            return {"returncode": 0, "stdout_log": str(stdout_log), "stderr_log": str(stderr_log)}
+            return {
+                "returncode": 0,
+                "stdout_log": str(stdout_log),
+                "stderr_log": str(stderr_log),
+            }
 
         with stdout_log.open("w", encoding="utf-8") as out, stderr_log.open("w", encoding="utf-8") as err:
-            result = subprocess.run(cmd, cwd=self.repo_root, stdout=out, stderr=err, text=True, encoding="utf-8")
+            result = subprocess.run(
+                cmd,
+                cwd=self.repo_root,
+                stdout=out,
+                stderr=err,
+                text=True,
+                encoding="utf-8",
+            )
 
         self.logger.info("Codex step finished with exit code %s.", result.returncode)
-        return {"returncode": result.returncode, "stdout_log": str(stdout_log), "stderr_log": str(stderr_log)}
+        return {
+            "returncode": result.returncode,
+            "stdout_log": str(stdout_log),
+            "stderr_log": str(stderr_log),
+        }
 
     def _commit_task_changes(self, task: Task, commit_targets: list[str]) -> str | None:
         if self.dry_run:
             return "dry-run-no-commit"
-        if not commit_targets:
+
+        # Normalize and deduplicate
+        commit_targets = sorted(set(commit_targets))
+
+        # Remove ignored paths
+        filtered_targets = [
+            path for path in commit_targets
+            if not any(
+                path == patt.rstrip("/") or path.startswith(patt.rstrip("/") + "/")
+                for patt in DEFAULT_IGNORE_PATTERNS
+            )
+        ]
+
+        if not filtered_targets:
             self.logger.info("No task-specific file changes detected after Task %s. No commit created.", task.task_id)
             return None
 
-        self._run_cmd(["git", "add", "--"] + commit_targets, "git add failed")
-        staged = self._run_cmd(["git", "diff", "--cached", "--name-only"], "git diff --cached failed", capture_output=True).strip()
+        self._run_cmd(["git", "add", "--"] + filtered_targets, "git add failed")
+        staged = self._run_cmd(
+            ["git", "diff", "--cached", "--name-only"],
+            "git diff --cached failed",
+            capture_output=True,
+        ).strip()
+
         if not staged:
             self.logger.info("No staged changes after git add. No commit created.")
             return None
 
         commit_message = f"feat(task-{task.task_id}): {task.title}"
         self._run_cmd(["git", "commit", "-m", commit_message], "git commit failed")
-        sha = self._run_cmd(["git", "rev-parse", "HEAD"], "git rev-parse failed", capture_output=True).strip()
+
+        sha = self._run_cmd(
+            ["git", "rev-parse", "HEAD"],
+            "git rev-parse failed",
+            capture_output=True,
+        ).strip()
+
         self.logger.info("Created commit %s for Task %s.", sha, task.task_id)
         return sha
 
@@ -342,22 +423,39 @@ class CodexPortfolioRunner:
         self._run_cmd(["git", "push"], "git push failed")
 
     def _mark_task_complete_in_json(self, task_id: int) -> None:
-        raw = json.loads(self.tasks_file.read_text(encoding="utf-8"))
+        try:
+            raw = json.loads(self.tasks_file.read_text(encoding="utf-8"))
+        except json.JSONDecodeError as exc:
+            raise RunnerError(f"Failed to re-read tasks JSON: {self.tasks_file}") from exc
+
         found = False
         for item in raw:
             if int(item.get("task_id")) == task_id:
                 item["status"] = "completed"
                 found = True
                 break
+
         if not found:
             raise RunnerError(f"Task {task_id} not found in tasks JSON.")
+
         if self.dry_run:
+            self.logger.info("[DRY RUN] Would mark Task %s as completed in %s", task_id, self.tasks_file)
             return
+
         temp = self.tasks_file.with_suffix(".tmp")
         temp.write_text(json.dumps(raw, indent=2), encoding="utf-8")
         temp.replace(self.tasks_file)
+        self.logger.info("Marked Task %s as completed in %s", task_id, self.tasks_file)
 
-    def _record_failure(self, state: dict[str, Any], task: Task, stage: str, exit_code: int, stdout_log: str, stderr_log: str) -> None:
+    def _record_failure(
+        self,
+        state: dict[str, Any],
+        task: Task,
+        stage: str,
+        exit_code: int,
+        stdout_log: str,
+        stderr_log: str,
+    ) -> None:
         self.logger.error("Task %s failed during %s with exit code %s", task.task_id, stage, exit_code)
         state["last_failure"] = {
             "task_id": task.task_id,
@@ -372,7 +470,11 @@ class CodexPortfolioRunner:
         self._save_state(state)
 
     def _get_changed_files(self) -> list[str]:
-        output = self._run_cmd(["git", "status", "--porcelain"], "git status failed", capture_output=True)
+        output = self._run_cmd(
+            ["git", "status", "--porcelain"],
+            "git status failed",
+            capture_output=True,
+        )
         files = []
         for line in output.splitlines():
             if self._is_ignored_status_line(line):
@@ -388,14 +490,30 @@ class CodexPortfolioRunner:
         path = line[3:].strip()
         if " -> " in path:
             path = path.split(" -> ", 1)[1].strip()
-        return any(path == patt.rstrip("/") or path.startswith(patt.rstrip("/") + "/") for patt in DEFAULT_IGNORE_PATTERNS)
+        return any(
+            path == patt.rstrip("/") or path.startswith(patt.rstrip("/") + "/")
+            for patt in DEFAULT_IGNORE_PATTERNS
+        )
 
-    def _run_cmd(self, cmd: list[str], error_message: str, capture_output: bool = False) -> str:
-        result = subprocess.run(cmd, cwd=self.repo_root, capture_output=True, text=True, encoding="utf-8")
+    def _run_cmd(
+        self,
+        cmd: list[str],
+        error_message: str,
+        capture_output: bool = False,
+    ) -> str:
+        result = subprocess.run(
+            cmd,
+            cwd=self.repo_root,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+        )
         if result.returncode != 0:
             raise RunnerError(
-                f"{error_message}\nCommand: {' '.join(shlex.quote(c) for c in cmd)}\n"
-                f"stdout: {result.stdout.strip()}\nstderr: {result.stderr.strip()}"
+                f"{error_message}\n"
+                f"Command: {' '.join(shlex.quote(c) for c in cmd)}\n"
+                f"stdout: {result.stdout.strip()}\n"
+                f"stderr: {result.stderr.strip()}"
             )
         return result.stdout if capture_output else ""
 
@@ -424,17 +542,61 @@ def load_verify_prompt(path_str: str) -> str:
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Run Codex portfolio tasks sequentially with verification and optional git commit/push.")
-    parser.add_argument("--repo-root", default=".", help="Path to git repo root. Default: current directory.")
-    parser.add_argument("--tasks-file", default="tools/tasks.json", help="Path to tasks JSON. Default: tools/tasks.json")
-    parser.add_argument("--max-tasks", type=int, default=5, help="Maximum number of pending tasks to run. Default: 5.")
-    parser.add_argument("--verify-prompt-file", default="", help="Optional path to verification prompt file.")
-    parser.add_argument("--codex-cmd", default="codex", help="Codex executable. Default: codex")
-    parser.add_argument("--codex-arg", action="append", default=[], help="Extra argument passed to 'codex exec'. Can be repeated.")
-    parser.add_argument("--allow-dirty-git", action="store_true", help="Allow start even if git working tree is dirty.")
-    parser.add_argument("--no-commit", action="store_true", help="Disable auto-commit after successful verification.")
-    parser.add_argument("--push", action="store_true", help="Push after each successful commit.")
-    parser.add_argument("--dry-run", action="store_true", help="Do not run Codex or git write actions.")
+    parser = argparse.ArgumentParser(
+        description="Run Codex portfolio tasks sequentially with verification and optional git commit/push."
+    )
+    parser.add_argument(
+        "--repo-root",
+        default=".",
+        help="Path to git repo root. Default: current directory.",
+    )
+    parser.add_argument(
+        "--tasks-file",
+        default="tools/tasks.json",
+        help="Path to tasks JSON. Default: tools/tasks.json",
+    )
+    parser.add_argument(
+        "--max-tasks",
+        type=int,
+        default=5,
+        help="Maximum number of pending tasks to run. Default: 5.",
+    )
+    parser.add_argument(
+        "--verify-prompt-file",
+        default="",
+        help="Optional path to verification prompt file.",
+    )
+    parser.add_argument(
+        "--codex-cmd",
+        default="codex",
+        help="Codex executable. Default: codex",
+    )
+    parser.add_argument(
+        "--codex-arg",
+        action="append",
+        default=[],
+        help="Extra argument passed to 'codex exec'. Can be repeated.",
+    )
+    parser.add_argument(
+        "--allow-dirty-git",
+        action="store_true",
+        help="Allow start even if git working tree is dirty.",
+    )
+    parser.add_argument(
+        "--no-commit",
+        action="store_true",
+        help="Disable auto-commit after successful verification.",
+    )
+    parser.add_argument(
+        "--push",
+        action="store_true",
+        help="Push after each successful commit.",
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Do not run Codex or git write actions.",
+    )
     return parser.parse_args()
 
 
