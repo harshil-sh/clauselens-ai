@@ -10,7 +10,7 @@ This plan combines:
 ## Phase 1 — Repository and foundation
 
 - [ ] Task 1: Create production-grade backend folder structure
-- [ ] Task 2: Set up FastAPI application entrypoint and `/health` endpoint
+- [x] Task 2: Set up FastAPI application entrypoint and `/health` endpoint
 - [ ] Task 3: Add environment-based settings and configuration management
 - [ ] Task 4: Add structured logging and global exception handling
 - [ ] Task 5: Create repository interfaces and AI client dependency boundaries
