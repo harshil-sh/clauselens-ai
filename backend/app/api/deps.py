@@ -1,9 +1,15 @@
 from functools import lru_cache
 
-from app.repositories.in_memory import InMemoryAnalysisRepository
-from app.repositories.interfaces import AnalysisRepository
+from app.clients.interfaces import DocumentAnalysisAIClient
+from app.clients.mock import MockDocumentAnalysisAIClient
+from app.repositories.in_memory import InMemoryAnalysisRepository, InMemoryDocumentRepository
+from app.repositories.interfaces import AnalysisRepository, DocumentRepository
 from app.services.document_analysis import DocumentAnalysisService
-from app.services.openai_client import MockOpenAIClient, OpenAIClient
+
+
+@lru_cache
+def get_document_repository() -> DocumentRepository:
+    return InMemoryDocumentRepository()
 
 
 @lru_cache
@@ -12,8 +18,8 @@ def get_analysis_repository() -> AnalysisRepository:
 
 
 @lru_cache
-def get_openai_client() -> OpenAIClient:
-    return MockOpenAIClient()
+def get_openai_client() -> DocumentAnalysisAIClient:
+    return MockDocumentAnalysisAIClient()
 
 
 @lru_cache

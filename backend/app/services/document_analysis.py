@@ -2,13 +2,13 @@ from __future__ import annotations
 
 from uuid import uuid4
 
+from app.clients.interfaces import DocumentAnalysisAIClient
 from app.domain.models import AnalysisResult, AnalysisSummary, Clause, RiskFlag
 from app.repositories.interfaces import AnalysisRepository
-from app.services.openai_client import OpenAIClient
 
 
 class DocumentAnalysisService:
-    def __init__(self, repository: AnalysisRepository, openai_client: OpenAIClient) -> None:
+    def __init__(self, repository: AnalysisRepository, openai_client: DocumentAnalysisAIClient) -> None:
         self.repository = repository
         self.openai_client = openai_client
 

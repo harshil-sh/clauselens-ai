@@ -1,5 +1,17 @@
-from app.domain.models import AnalysisResult
-from app.repositories.interfaces import AnalysisRepository
+from app.domain.models import AnalysisResult, DocumentRecord
+from app.repositories.interfaces import AnalysisRepository, DocumentRepository
+
+
+class InMemoryDocumentRepository(DocumentRepository):
+    def __init__(self) -> None:
+        self._store: dict[str, DocumentRecord] = {}
+
+    def save(self, document: DocumentRecord) -> DocumentRecord:
+        self._store[document.document_id] = document
+        return document
+
+    def get_by_id(self, document_id: str) -> DocumentRecord | None:
+        return self._store.get(document_id)
 
 
 class InMemoryAnalysisRepository(AnalysisRepository):

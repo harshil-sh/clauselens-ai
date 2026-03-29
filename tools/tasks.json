@@ -43,7 +43,7 @@
     "task_id": 5,
     "phase": "Phase 1 \u2014 Repository and foundation",
     "title": "Create repository interfaces and AI client dependency boundaries",
-    "status": "not_started",
+    "status": "completed",
     "acceptance_criteria": [
       "Task output is implemented and verified"
     ],

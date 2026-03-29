@@ -13,7 +13,7 @@ This plan combines:
 - [x] Task 2: Set up FastAPI application entrypoint and `/health` endpoint
 - [ ] Task 3: Add environment-based settings and configuration management
 - [ ] Task 4: Add structured logging and global exception handling
-- [ ] Task 5: Create repository interfaces and AI client dependency boundaries
+- [x] Task 5: Create repository interfaces and AI client dependency boundaries
 - [ ] Task 6: Create React + TypeScript frontend skeleton
 - [ ] Task 7: Add frontend routing, app shell, and shared UI primitives
 - [ ] Task 8: Add root-level setup guidance and developer scripts documentation

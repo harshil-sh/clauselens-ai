@@ -30,6 +30,14 @@ class AnalysisSummary:
 
 
 @dataclass
+class DocumentRecord:
+    document_id: str
+    filename: str
+    content_type: str | None = None
+    created_at: datetime = field(default_factory=datetime.utcnow)
+
+
+@dataclass
 class AnalysisResult:
     document_id: str
     filename: str
