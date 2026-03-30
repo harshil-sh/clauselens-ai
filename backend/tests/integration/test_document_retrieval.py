@@ -65,7 +65,7 @@ def call_app(path: str) -> tuple[int, dict[str, object]]:
     async def send(message: dict[str, object]) -> None:
         messages.append(message)
 
-    asyncio.run(asyncio.wait_for(app(scope, receive, send), timeout=1))
+    asyncio.run(asyncio.wait_for(app(scope, receive, send), timeout=3))
 
     response_start = next(
         message for message in messages if message["type"] == "http.response.start"

@@ -48,12 +48,23 @@ def test_get_document_analysis_returns_not_found_for_unknown_document_id() -> No
 
 
 def test_list_recent_analyses() -> None:
-    client.post(
+    create_response = client.post(
         "/api/v1/documents/analyse",
         files={"file": ("sample.txt", b"Another sample contract.", "text/plain")},
     )
+    created_body = create_response.json()
     response = client.get("/api/v1/documents")
     assert response.status_code == 200
     body = response.json()
     assert "items" in body
     assert isinstance(body["items"], list)
+    created_item = next(
+        (item for item in body["items"] if item["document_id"] == created_body["document_id"]),
+        None,
+    )
+    assert created_item == {
+        "document_id": created_body["document_id"],
+        "filename": "sample.txt",
+        "document_type": created_body["document_type"],
+        "created_at": created_body["created_at"],
+    }

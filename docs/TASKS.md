@@ -44,7 +44,7 @@ This plan combines:
 - [ ] Task 24: Add SQLite models and repositories for documents and analyses
 - [x] Task 25: Persist successful analysis results
 - [ ] Task 26: Add endpoint to retrieve analysis by document id
-- [ ] Task 27: Add endpoint to list recent analyses
+- [x] Task 27: Add endpoint to list recent analyses
 - [ ] Task 28: Add integration tests for persistence and retrieval flows
 
 ## Phase 5 — Frontend analyser experience

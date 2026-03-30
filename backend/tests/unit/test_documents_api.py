@@ -4,7 +4,7 @@ from io import BytesIO
 
 from fastapi import UploadFile
 
-from app.api.v1.documents import analyse_document, get_document_analysis
+from app.api.v1.documents import analyse_document, get_document_analysis, list_recent_analyses
 from app.core.errors import ApiError
 from app.domain.models import AnalysisResult, AnalysisSummary, Clause, ExtractedDocument, RiskFlag
 from app.services.file_validation import ValidatedUpload
@@ -42,6 +42,17 @@ class StubAnalysisService:
         if document_id == "doc_123":
             return build_analysis_result(filename="contract.txt")
         return None
+
+    def list_recent(self) -> list[AnalysisResult]:
+        older = build_analysis_result(filename="older.txt")
+        older.document_id = "doc_older"
+        older.created_at = datetime(2026, 3, 30, 9, 0, 0)
+
+        newer = build_analysis_result(filename="newer.txt")
+        newer.document_id = "doc_newer"
+        newer.created_at = datetime(2026, 3, 30, 10, 0, 0)
+
+        return [newer, older]
 
 
 def build_analysis_result(*, filename: str) -> AnalysisResult:
@@ -127,3 +138,15 @@ def test_get_document_analysis_raises_not_found_for_unknown_document_id() -> Non
         assert exc.message == "Analysis result was not found."
     else:
         raise AssertionError("Expected ApiError for unknown document id")
+
+
+def test_list_recent_analyses_returns_recent_analysis_items() -> None:
+    response = list_recent_analyses(service=StubAnalysisService())
+
+    assert [item.document_id for item in response.items] == [
+        "doc_newer",
+        "doc_older",
+    ]
+    assert response.items[0].filename == "newer.txt"
+    assert response.items[0].document_type == "contract"
+    assert response.items[0].created_at == datetime(2026, 3, 30, 10, 0, 0)
