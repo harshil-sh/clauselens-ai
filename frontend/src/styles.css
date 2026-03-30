@@ -224,6 +224,39 @@ a {
   overflow-wrap: anywhere;
 }
 
+.analysis-page__clause-groups {
+  display: grid;
+  gap: 18px;
+  margin-top: 16px;
+}
+
+.analysis-page__clause-group {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgba(216, 231, 255, 0.35), rgba(255, 255, 255, 0.94));
+}
+
+.analysis-page__clause-group-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.analysis-page__clause-group-header h3 {
+  margin: 0;
+  color: #15233c;
+  font-size: 1.05rem;
+}
+
+.analysis-page__clause-group-header p {
+  margin-top: 4px;
+  color: #55657f;
+  font-size: 0.95rem;
+}
+
 .section-heading h1,
 .ui-empty-state h2,
 .ui-card h2 {
@@ -395,6 +428,10 @@ a {
 
   .analysis-page__card-heading {
     align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .analysis-page__clause-group-header {
     flex-direction: column;
   }
 }

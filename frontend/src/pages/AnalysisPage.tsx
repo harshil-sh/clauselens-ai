@@ -13,6 +13,13 @@ function formatAnalysisDate(value: string) {
   });
 }
 
+function formatClauseCategoryLabel(category: string) {
+  return category
+    .split("_")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
 export function AnalysisPage() {
   const { documentId = "" } = useParams();
   const query = useQuery({
@@ -34,6 +41,26 @@ export function AnalysisPage() {
   const clausesCount = analysis.clauses.length;
   const risksCount = analysis.risk_flags.length;
   const keyPointsCount = analysis.summary.key_points.length;
+  const clauseGroups = analysis.clauses.reduce<
+    Array<{
+      category: string;
+      clauses: typeof analysis.clauses;
+    }>
+  >((groups, clause) => {
+    const existingGroup = groups.find((group) => group.category === clause.category);
+
+    if (existingGroup) {
+      existingGroup.clauses.push(clause);
+      return groups;
+    }
+
+    groups.push({
+      category: clause.category,
+      clauses: [clause],
+    });
+
+    return groups;
+  }, []);
 
   return (
     <section className="page-section analysis-page">
@@ -103,15 +130,26 @@ export function AnalysisPage() {
 
       <Card>
         <h2>Clauses</h2>
-        {analysis.clauses.map((clause) => (
-          <article key={clause.clause_id} className="stacked-item">
-            <strong>{clause.heading}</strong>
-            <p>
-              <em>{clause.category}</em>
-            </p>
-            <p>{clause.extracted_text}</p>
-          </article>
-        ))}
+        <div className="analysis-page__clause-groups">
+          {clauseGroups.map((group) => (
+            <section key={group.category} className="analysis-page__clause-group">
+              <div className="analysis-page__clause-group-header">
+                <div>
+                  <h3>{formatClauseCategoryLabel(group.category)}</h3>
+                  <p>{group.clauses.length === 1 ? "1 clause" : `${group.clauses.length} clauses`}</p>
+                </div>
+                <Badge tone="neutral">{group.category}</Badge>
+              </div>
+
+              {group.clauses.map((clause) => (
+                <article key={clause.clause_id} className="stacked-item">
+                  <strong>{clause.heading}</strong>
+                  <p>{clause.extracted_text}</p>
+                </article>
+              ))}
+            </section>
+          ))}
+        </div>
       </Card>
 
       <Card>
