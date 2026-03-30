@@ -343,7 +343,7 @@
     "task_id": 35,
     "phase": "Phase 5 \u2014 Frontend analyser experience",
     "title": "Add recent analyses page",
-    "status": "not_started",
+    "status": "completed",
     "acceptance_criteria": [
       "Task output is implemented and verified"
     ],
