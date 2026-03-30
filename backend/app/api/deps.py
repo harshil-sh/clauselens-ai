@@ -7,6 +7,7 @@ from app.repositories.in_memory import InMemoryAnalysisRepository, InMemoryDocum
 from app.repositories.interfaces import AnalysisRepository, DocumentRepository
 from app.services.document_analysis import DocumentAnalysisService
 from app.services.file_validation import FileValidationService
+from app.services.upload_storage import LocalUploadStorageService
 
 
 @lru_cache
@@ -35,3 +36,11 @@ def get_document_analysis_service() -> DocumentAnalysisService:
 @lru_cache
 def get_file_validation_service() -> FileValidationService:
     return FileValidationService(settings=get_settings())
+
+
+@lru_cache
+def get_local_upload_storage_service() -> LocalUploadStorageService:
+    return LocalUploadStorageService(
+        settings=get_settings(),
+        repository=get_document_repository(),
+    )

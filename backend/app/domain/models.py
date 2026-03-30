@@ -34,6 +34,7 @@ class DocumentRecord:
     document_id: str
     filename: str
     content_type: str | None = None
+    storage_path: str | None = None
     created_at: datetime = field(default_factory=datetime.utcnow)
 
 

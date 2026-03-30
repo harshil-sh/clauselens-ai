@@ -6,6 +6,8 @@ from app.api.v1.documents import upload_document
 from app.core.config import Settings
 from app.core.errors import ApiError
 from app.services.file_validation import FileValidationService
+from app.services.upload_storage import LocalUploadStorageService
+from app.repositories.in_memory import InMemoryDocumentRepository
 
 
 def _build_upload_file(
@@ -81,15 +83,22 @@ def test_validate_upload_rejects_file_over_size_limit() -> None:
 
 
 def test_upload_document_returns_metadata_response() -> None:
-    service = FileValidationService(Settings(max_upload_mb=1))
+    settings = Settings(max_upload_mb=1)
+    service = FileValidationService(settings)
+    storage_service = LocalUploadStorageService(
+        settings=settings,
+        repository=InMemoryDocumentRepository(),
+    )
 
     response = _run(
         upload_document(
             file=_build_upload_file("sample.txt", b"contract text"),
             validation_service=service,
+            storage_service=storage_service,
         )
     )
 
+    assert response.document_id.startswith("doc_")
     assert response.filename == "sample.txt"
     assert response.content_type == "text/plain"
     assert response.size_bytes == 13
