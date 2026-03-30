@@ -224,6 +224,10 @@ a {
   overflow-wrap: anywhere;
 }
 
+.analysis-page__download-action {
+  width: 100%;
+}
+
 .analysis-page__clause-groups {
   display: grid;
   gap: 18px;

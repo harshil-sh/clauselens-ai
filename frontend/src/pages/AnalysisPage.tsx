@@ -43,6 +43,13 @@ function formatSeverityLabel(severity: string) {
   return normalizedSeverity.charAt(0).toUpperCase() + normalizedSeverity.slice(1);
 }
 
+function buildDownloadFilename(filename: string) {
+  const normalizedName = filename.trim().replace(/\.[^/.]+$/, "") || "analysis";
+  const safeName = normalizedName.replace(/[^a-z0-9-_]+/gi, "-").replace(/-+/g, "-").replace(/^-|-$/g, "");
+
+  return `${safeName || "analysis"}-analysis.json`;
+}
+
 export function AnalysisPage() {
   const { documentId = "" } = useParams();
   const query = useQuery({
@@ -84,6 +91,7 @@ export function AnalysisPage() {
   const keyPointsCount = analysis.summary.key_points.length;
   const summaryText = analysis.summary.short_summary.trim();
   const clausesById = new Map(analysis.clauses.map((clause) => [clause.clause_id, clause]));
+  const downloadFilename = buildDownloadFilename(analysis.filename);
   const clauseGroups = analysis.clauses.reduce<
     Array<{
       category: string;
@@ -104,6 +112,20 @@ export function AnalysisPage() {
 
     return groups;
   }, []);
+
+  function handleJsonDownload() {
+    const content = JSON.stringify(analysis, null, 2);
+    const blob = new Blob([content], { type: "application/json" });
+    const downloadUrl = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+
+    link.href = downloadUrl;
+    link.download = downloadFilename;
+    document.body.append(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(downloadUrl);
+  }
 
   return (
     <section className="page-section analysis-page">
@@ -175,6 +197,9 @@ export function AnalysisPage() {
               <dd>{createdAtLabel}</dd>
             </div>
           </dl>
+          <Button type="button" className="analysis-page__download-action" onClick={handleJsonDownload}>
+            Download JSON
+          </Button>
         </Card>
       </div>
 

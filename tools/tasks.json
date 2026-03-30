@@ -333,7 +333,7 @@
     "task_id": 34,
     "phase": "Phase 5 \u2014 Frontend analyser experience",
     "title": "Add JSON download action for structured analysis result",
-    "status": "not_started",
+    "status": "completed",
     "acceptance_criteria": [
       "Task output is implemented and verified"
     ],
