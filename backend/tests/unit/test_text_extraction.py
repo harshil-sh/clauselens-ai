@@ -5,6 +5,7 @@ from zipfile import ZipFile
 import pytest
 
 from app.core.errors import ApiError
+from app.domain.models import ExtractedDocument
 from app.services import text_extraction
 from app.services.text_extraction import (
     DocxTextExtractionService,
@@ -33,6 +34,22 @@ def test_extract_txt_text_strips_utf8_bom(tmp_path: Path) -> None:
     extracted = service.extract(file_path)
 
     assert extracted == "Termination clause"
+
+
+def test_extract_txt_document_returns_normalized_contract(tmp_path: Path) -> None:
+    file_path = tmp_path / "contract.TXT"
+    file_path.write_text("  Payment terms apply.  ", encoding="utf-8")
+
+    service = TxtTextExtractionService()
+
+    extracted = service.extract_document(file_path)
+
+    assert extracted == ExtractedDocument(
+        filename="contract.TXT",
+        file_extension=".txt",
+        extracted_text="Payment terms apply.",
+        char_count=len("Payment terms apply."),
+    )
 
 
 def test_extract_rejects_non_txt_files(tmp_path: Path) -> None:
@@ -101,6 +118,39 @@ def test_extract_pdf_rejects_non_pdf_files(tmp_path: Path) -> None:
         service.extract(file_path)
 
     assert exc_info.value.code == "unsupported_file_type"
+
+
+def test_extract_pdf_document_returns_normalized_contract(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    file_path = tmp_path / "contract.pdf"
+    file_path.write_bytes(b"%PDF-1.4")
+
+    class FakePage:
+        def extract_text(self) -> str | None:
+            return "  Renewal is annual.  "
+
+    class FakePdfReader:
+        def __init__(self, _: str) -> None:
+            self.pages = [FakePage()]
+
+    monkeypatch.setattr(
+        text_extraction,
+        "import_module",
+        lambda name: SimpleNamespace(PdfReader=FakePdfReader) if name == "pypdf" else None,
+    )
+
+    service = PdfTextExtractionService()
+
+    extracted = service.extract_document(file_path)
+
+    assert extracted == ExtractedDocument(
+        filename="contract.pdf",
+        file_extension=".pdf",
+        extracted_text="Renewal is annual.",
+        char_count=len("Renewal is annual."),
+    )
 
 
 def test_extract_pdf_raises_when_parser_is_unavailable(
@@ -191,6 +241,31 @@ def test_extract_docx_rejects_non_docx_files(tmp_path: Path) -> None:
         service.extract(file_path)
 
     assert exc_info.value.code == "unsupported_file_type"
+
+
+def test_extract_docx_document_returns_normalized_contract(tmp_path: Path) -> None:
+    file_path = tmp_path / "contract.docx"
+    _write_docx(
+        file_path,
+        """
+        <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+          <w:body>
+            <w:p><w:r><w:t>  Notice is required.  </w:t></w:r></w:p>
+          </w:body>
+        </w:document>
+        """.strip(),
+    )
+
+    service = DocxTextExtractionService()
+
+    extracted = service.extract_document(file_path)
+
+    assert extracted == ExtractedDocument(
+        filename="contract.docx",
+        file_extension=".docx",
+        extracted_text="Notice is required.",
+        char_count=len("Notice is required."),
+    )
 
 
 def test_extract_docx_raises_for_invalid_archive(tmp_path: Path) -> None:

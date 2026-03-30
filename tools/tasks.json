@@ -133,7 +133,7 @@
     "task_id": 14,
     "phase": "Phase 2 \u2014 Backend ingestion and parsing",
     "title": "Add normalized extracted document contract",
-    "status": "not_started",
+    "status": "completed",
     "acceptance_criteria": [
       "Task output is implemented and verified"
     ],

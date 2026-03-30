@@ -6,6 +6,7 @@ from xml.etree import ElementTree
 from zipfile import BadZipFile, ZipFile
 
 from app.core.errors import ApiError
+from app.domain.models import ExtractedDocument
 
 
 WORDPROCESSINGML_NAMESPACE = {"w": "http://schemas.openxmlformats.org/wordprocessingml/2006/main"}
@@ -21,6 +22,16 @@ def _normalize_extracted_text(content: str) -> str:
         )
 
     return extracted
+
+
+def _build_extracted_document(file_path: str | Path, extracted_text: str) -> ExtractedDocument:
+    path = Path(file_path)
+    return ExtractedDocument(
+        filename=path.name,
+        file_extension=path.suffix.lower(),
+        extracted_text=extracted_text,
+        char_count=len(extracted_text),
+    )
 
 
 class TxtTextExtractionService:
@@ -50,6 +61,10 @@ class TxtTextExtractionService:
             ) from exc
 
         return _normalize_extracted_text(content)
+
+    def extract_document(self, file_path: str | Path) -> ExtractedDocument:
+        extracted_text = self.extract(file_path)
+        return _build_extracted_document(file_path, extracted_text)
 
 
 class PdfTextExtractionService:
@@ -87,6 +102,10 @@ class PdfTextExtractionService:
             ) from exc
 
         return _normalize_extracted_text(content)
+
+    def extract_document(self, file_path: str | Path) -> ExtractedDocument:
+        extracted_text = self.extract(file_path)
+        return _build_extracted_document(file_path, extracted_text)
 
 
 class DocxTextExtractionService:
@@ -145,3 +164,7 @@ class DocxTextExtractionService:
                 paragraphs.append(paragraph_text)
 
         return _normalize_extracted_text("\n\n".join(paragraphs))
+
+    def extract_document(self, file_path: str | Path) -> ExtractedDocument:
+        extracted_text = self.extract(file_path)
+        return _build_extracted_document(file_path, extracted_text)

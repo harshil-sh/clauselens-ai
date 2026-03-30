@@ -39,6 +39,14 @@ class DocumentRecord:
 
 
 @dataclass
+class ExtractedDocument:
+    filename: str
+    file_extension: str
+    extracted_text: str
+    char_count: int
+
+
+@dataclass
 class AnalysisResult:
     document_id: str
     filename: str
