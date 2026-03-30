@@ -273,7 +273,7 @@
     "task_id": 28,
     "phase": "Phase 4 \u2014 Persistence and retrieval",
     "title": "Add integration tests for persistence and retrieval flows",
-    "status": "not_started",
+    "status": "completed",
     "acceptance_criteria": [
       "Task output is implemented and verified"
     ],
