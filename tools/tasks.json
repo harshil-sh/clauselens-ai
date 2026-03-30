@@ -373,7 +373,7 @@
     "task_id": 38,
     "phase": "Phase 6 \u2014 Hardening and portfolio polish",
     "title": "Add CORS, upload size limits, and secure file handling safeguards",
-    "status": "not_started",
+    "status": "completed",
     "acceptance_criteria": [
       "Task output is implemented and verified"
     ],

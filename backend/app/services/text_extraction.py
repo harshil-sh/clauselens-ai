@@ -8,6 +8,7 @@ from zipfile import BadZipFile, ZipFile
 
 from app.core.errors import ApiError
 from app.domain.models import ExtractedDocument
+from app.services.file_safety import build_safe_filename
 from app.services.file_validation import ValidatedUpload
 
 
@@ -196,6 +197,6 @@ class UploadedDocumentTextExtractionService:
             )
 
         with TemporaryDirectory() as temp_dir:
-            temp_path = Path(temp_dir) / Path(upload.filename).name
+            temp_path = Path(temp_dir) / build_safe_filename(upload.filename)
             temp_path.write_bytes(upload.content)
             return extractor.extract_document(temp_path)

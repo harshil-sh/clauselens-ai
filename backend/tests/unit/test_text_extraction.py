@@ -366,6 +366,36 @@ def test_uploaded_document_text_extraction_rejects_unknown_extensions() -> None:
     assert exc_info.value.code == "unsupported_file_type"
 
 
+def test_uploaded_document_text_extraction_sanitizes_temp_filename() -> None:
+    observed_path: Path | None = None
+
+    class FakeExtractor:
+        def extract_document(self, file_path: str | Path) -> ExtractedDocument:
+            nonlocal observed_path
+            observed_path = Path(file_path)
+            return ExtractedDocument(
+                filename=Path(file_path).name,
+                file_extension=Path(file_path).suffix.lower(),
+                extracted_text="Safe content",
+                char_count=len("Safe content"),
+            )
+
+    service = UploadedDocumentTextExtractionService(txt_service=FakeExtractor())
+
+    extracted = service.extract(
+        ValidatedUpload(
+            filename=r"..\..\contracts\unsafe name?.txt",
+            content_type="text/plain",
+            size_bytes=12,
+            content=b"safe content",
+        )
+    )
+
+    assert observed_path is not None
+    assert observed_path.name == "unsafe-name.txt"
+    assert extracted.filename == "unsafe-name.txt"
+
+
 def _write_docx(file_path: Path, document_xml: str) -> None:
     with ZipFile(file_path, "w") as archive:
         archive.writestr("[Content_Types].xml", "<Types></Types>")

@@ -1,5 +1,6 @@
 from functools import lru_cache
 from typing import Annotated, Literal
+from urllib.parse import urlparse
 
 from pydantic import Field, ValidationInfo, field_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
@@ -70,6 +71,18 @@ class Settings(BaseSettings):
         for extension in value:
             cleaned = extension.lower()
             normalized.append(cleaned if cleaned.startswith(".") else f".{cleaned}")
+        return tuple(dict.fromkeys(normalized))
+
+    @field_validator("cors_allowed_origins")
+    @classmethod
+    def validate_cors_allowed_origins(cls, value: tuple[str, ...]) -> tuple[str, ...]:
+        normalized = []
+        for origin in value:
+            cleaned = origin.rstrip("/")
+            parsed = urlparse(cleaned)
+            if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+                raise ValueError("cors_allowed_origins entries must be absolute http(s) origins.")
+            normalized.append(cleaned)
         return tuple(dict.fromkeys(normalized))
 
     @property
