@@ -76,6 +76,15 @@ def test_extract_raises_for_invalid_utf8_content(tmp_path: Path) -> None:
     assert exc_info.value.code == "extraction_failed"
 
 
+def test_extract_txt_raises_when_file_is_missing(tmp_path: Path) -> None:
+    service = TxtTextExtractionService()
+
+    with pytest.raises(ApiError) as exc_info:
+        service.extract(tmp_path / "missing.txt")
+
+    assert exc_info.value.code == "extraction_failed"
+
+
 def test_extract_pdf_text_successfully(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     file_path = tmp_path / "contract.pdf"
     file_path.write_bytes(b"%PDF-1.4")
@@ -173,6 +182,15 @@ def test_extract_pdf_raises_when_parser_is_unavailable(
     assert exc_info.value.code == "extraction_failed"
 
 
+def test_extract_pdf_raises_when_file_is_missing(tmp_path: Path) -> None:
+    service = PdfTextExtractionService()
+
+    with pytest.raises(ApiError) as exc_info:
+        service.extract(tmp_path / "missing.pdf")
+
+    assert exc_info.value.code == "extraction_failed"
+
+
 def test_extract_pdf_raises_when_no_text_is_found(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -198,6 +216,15 @@ def test_extract_pdf_raises_when_no_text_is_found(
 
     with pytest.raises(ApiError) as exc_info:
         service.extract(file_path)
+
+    assert exc_info.value.code == "extraction_failed"
+
+
+def test_extract_docx_raises_when_file_is_missing(tmp_path: Path) -> None:
+    service = DocxTextExtractionService()
+
+    with pytest.raises(ApiError) as exc_info:
+        service.extract(tmp_path / "missing.docx")
 
     assert exc_info.value.code == "extraction_failed"
 

@@ -33,8 +33,7 @@ class FileValidationService:
                 status_code=400,
             )
 
-        file.file.seek(0)
-        content = file.file.read()
+        content = await file.read()
         size_bytes = len(content)
 
         if size_bytes == 0:

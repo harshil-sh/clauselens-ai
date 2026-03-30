@@ -1,4 +1,4 @@
-from io import BytesIO
+from tempfile import SpooledTemporaryFile
 
 from starlette.datastructures import Headers, UploadFile
 
@@ -15,9 +15,12 @@ def _build_upload_file(
     content: bytes,
     content_type: str = "text/plain",
 ) -> UploadFile:
+    file = SpooledTemporaryFile()
+    file.write(content)
+    file.seek(0)
     return UploadFile(
         filename=filename,
-        file=BytesIO(content),
+        file=file,
         headers=Headers({"content-type": content_type}),
     )
 
@@ -31,6 +34,24 @@ def test_validate_upload_accepts_supported_file_within_size_limit() -> None:
     assert result.content_type == "text/plain"
     assert result.size_bytes == 13
     assert result.content == b"contract text"
+
+
+def test_validate_upload_accepts_supported_file_with_uppercase_extension() -> None:
+    service = FileValidationService(Settings(max_upload_mb=1))
+
+    result = _run(
+        service.validate_upload(
+            _build_upload_file(
+                "MASTER-SERVICE-AGREEMENT.PDF",
+                b"%PDF-1.4 mock content",
+                content_type="application/pdf",
+            )
+        )
+    )
+
+    assert result.filename == "MASTER-SERVICE-AGREEMENT.PDF"
+    assert result.content_type == "application/pdf"
+    assert result.size_bytes == len(b"%PDF-1.4 mock content")
 
 
 def test_validate_upload_rejects_unsupported_file_type() -> None:
