@@ -4,8 +4,12 @@ from app.clients.openai import build_openai_client
 from app.clients.interfaces import DocumentAnalysisAIClient
 from app.clients.mock import MockDocumentAnalysisAIClient
 from app.core.config import get_settings
-from app.repositories.in_memory import InMemoryAnalysisRepository, InMemoryDocumentRepository
 from app.repositories.interfaces import AnalysisRepository, DocumentRepository
+from app.repositories.sqlite import (
+    SQLiteAnalysisRepository,
+    SQLiteDatabase,
+    SQLiteDocumentRepository,
+)
 from app.services.document_analysis import DocumentAnalysisService
 from app.services.file_validation import FileValidationService
 from app.services.prompt_loader import FilePromptLoader, PromptLoader
@@ -14,13 +18,18 @@ from app.services.upload_storage import LocalUploadStorageService
 
 
 @lru_cache
+def get_sqlite_database() -> SQLiteDatabase:
+    return SQLiteDatabase(get_settings().sqlite_db_path)
+
+
+@lru_cache
 def get_document_repository() -> DocumentRepository:
-    return InMemoryDocumentRepository()
+    return SQLiteDocumentRepository(get_sqlite_database())
 
 
 @lru_cache
 def get_analysis_repository() -> AnalysisRepository:
-    return InMemoryAnalysisRepository()
+    return SQLiteAnalysisRepository(get_sqlite_database())
 
 
 @lru_cache

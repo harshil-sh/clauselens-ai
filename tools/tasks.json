@@ -233,7 +233,7 @@
     "task_id": 24,
     "phase": "Phase 4 \u2014 Persistence and retrieval",
     "title": "Add SQLite models and repositories for documents and analyses",
-    "status": "not_started",
+    "status": "completed",
     "acceptance_criteria": [
       "Task output is implemented and verified"
     ],

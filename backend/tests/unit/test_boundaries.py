@@ -3,16 +3,29 @@ from app.api.deps import (
     get_document_repository,
     get_openai_client,
     get_prompt_loader,
+    get_sqlite_database,
 )
 from app.clients.openai import OpenAIDocumentAnalysisAIClient
 from app.core.config import clear_settings_cache
 from app.domain.models import AnalysisResult, AnalysisSummary, DocumentRecord
 from app.repositories.interfaces import AnalysisRepository, DocumentRepository
+from app.repositories.sqlite import SQLiteAnalysisRepository, SQLiteDatabase, SQLiteDocumentRepository
 from app.services.document_analysis import DocumentAnalysisService
 from app.services.prompt_loader import FilePromptLoader
 
 
-def test_document_repository_boundary_uses_in_memory_implementation() -> None:
+def test_document_repository_boundary_uses_sqlite_implementation(
+    monkeypatch,
+    tmp_path,
+) -> None:
+    from app.api import deps
+
+    db_path = tmp_path / "boundaries.db"
+    clear_settings_cache()
+    deps.get_sqlite_database.cache_clear()
+    deps.get_document_repository.cache_clear()
+    monkeypatch.setenv("SQLITE_DB_PATH", str(db_path))
+
     repository = get_document_repository()
 
     saved = repository.save(
@@ -24,11 +37,27 @@ def test_document_repository_boundary_uses_in_memory_implementation() -> None:
     )
 
     assert isinstance(repository, DocumentRepository)
+    assert isinstance(repository, SQLiteDocumentRepository)
     assert saved.document_id == "doc_123"
     assert repository.get_by_id("doc_123") == saved
 
+    clear_settings_cache()
+    deps.get_sqlite_database.cache_clear()
+    deps.get_document_repository.cache_clear()
 
-def test_analysis_repository_boundary_uses_in_memory_implementation() -> None:
+
+def test_analysis_repository_boundary_uses_sqlite_implementation(
+    monkeypatch,
+    tmp_path,
+) -> None:
+    from app.api import deps
+
+    db_path = tmp_path / "boundaries.db"
+    clear_settings_cache()
+    deps.get_sqlite_database.cache_clear()
+    deps.get_analysis_repository.cache_clear()
+    monkeypatch.setenv("SQLITE_DB_PATH", str(db_path))
+
     repository = get_analysis_repository()
     result = AnalysisResult(
         document_id="doc_456",
@@ -40,9 +69,31 @@ def test_analysis_repository_boundary_uses_in_memory_implementation() -> None:
     saved = repository.save(result)
 
     assert isinstance(repository, AnalysisRepository)
+    assert isinstance(repository, SQLiteAnalysisRepository)
     assert saved.document_id == "doc_456"
     assert repository.get_by_id("doc_456") == saved
     assert repository.list_recent()[0] == saved
+
+    clear_settings_cache()
+    deps.get_sqlite_database.cache_clear()
+    deps.get_analysis_repository.cache_clear()
+
+
+def test_sqlite_database_boundary_uses_configured_path(monkeypatch, tmp_path) -> None:
+    from app.api import deps
+
+    db_path = tmp_path / "configured.db"
+    clear_settings_cache()
+    deps.get_sqlite_database.cache_clear()
+    monkeypatch.setenv("SQLITE_DB_PATH", str(db_path))
+
+    database = get_sqlite_database()
+
+    assert isinstance(database, SQLiteDatabase)
+    assert db_path.exists()
+
+    clear_settings_cache()
+    deps.get_sqlite_database.cache_clear()
 
 
 def test_document_analysis_service_depends_on_ai_boundary() -> None:

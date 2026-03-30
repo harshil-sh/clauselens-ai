@@ -20,6 +20,7 @@ def test_settings_default_values() -> None:
     assert settings.api_v1_prefix == "/api/v1"
     assert settings.openai_model == "gpt-4.1-mini"
     assert settings.openai_api_key is None
+    assert settings.sqlite_db_path == "./data/clauselens.db"
     assert settings.allowed_file_extensions == (".pdf", ".docx", ".txt")
     assert settings.allowed_extensions_set == {".pdf", ".docx", ".txt"}
     assert settings.max_upload_bytes == 10 * 1024 * 1024
@@ -38,6 +39,7 @@ def test_settings_reads_environment_overrides(monkeypatch: pytest.MonkeyPatch) -
     monkeypatch.setenv("MAX_UPLOAD_MB", "25")
     monkeypatch.setenv("OPENAI_MODEL", "gpt-4.1")
     monkeypatch.setenv("OPENAI_API_KEY", "secret-key")
+    monkeypatch.setenv("SQLITE_DB_PATH", "/tmp/clauselens-test.db")
 
     settings = get_settings()
 
@@ -46,6 +48,7 @@ def test_settings_reads_environment_overrides(monkeypatch: pytest.MonkeyPatch) -
     assert settings.api_v1_prefix == "/internal/v1"
     assert settings.openai_model == "gpt-4.1"
     assert settings.openai_api_key == "secret-key"
+    assert settings.sqlite_db_path == "/tmp/clauselens-test.db"
     assert settings.allowed_file_extensions == (".pdf", ".docx", ".txt")
     assert settings.cors_allowed_origins == (
         "https://example.com",

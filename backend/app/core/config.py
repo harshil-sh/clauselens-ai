@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     openai_model: str = Field(default="gpt-4.1-mini", alias="OPENAI_MODEL")
     openai_api_key: str | None = Field(default=None, alias="OPENAI_API_KEY")
     max_upload_mb: int = Field(default=10, alias="MAX_UPLOAD_MB", gt=0)
+    sqlite_db_path: str = Field(default="./data/clauselens.db", alias="SQLITE_DB_PATH")
     upload_dir: str = Field(default="./data/uploads", alias="UPLOAD_DIR")
     allowed_file_extensions: Annotated[tuple[str, ...], NoDecode] = Field(
         default=(".pdf", ".docx", ".txt"),
@@ -39,11 +40,11 @@ class Settings(BaseSettings):
             raise ValueError("API_V1_PREFIX must start with '/'.")
         return value.rstrip("/") or "/"
 
-    @field_validator("upload_dir")
+    @field_validator("sqlite_db_path", "upload_dir")
     @classmethod
-    def validate_upload_dir(cls, value: str) -> str:
+    def validate_non_empty_path(cls, value: str, info: ValidationInfo) -> str:
         if not value.strip():
-            raise ValueError("UPLOAD_DIR must not be empty.")
+            raise ValueError(f"{info.field_name.upper()} must not be empty.")
         return value
 
     @field_validator("allowed_file_extensions", "cors_allowed_origins", mode="before")
