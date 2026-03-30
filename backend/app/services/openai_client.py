@@ -1,4 +1,4 @@
-from app.clients.interfaces import DocumentAnalysisAIClient as OpenAIClient
-from app.clients.mock import MockDocumentAnalysisAIClient as MockOpenAIClient
+from app.clients.openai import OpenAIDocumentAnalysisAIClient
+from app.clients.mock import MockDocumentAnalysisAIClient
 
-__all__ = ["MockOpenAIClient", "OpenAIClient"]
+__all__ = ["MockDocumentAnalysisAIClient", "OpenAIDocumentAnalysisAIClient"]

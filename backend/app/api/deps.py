@@ -1,12 +1,14 @@
 from functools import lru_cache
 
-from app.core.config import get_settings
+from app.clients.openai import build_openai_client
 from app.clients.interfaces import DocumentAnalysisAIClient
 from app.clients.mock import MockDocumentAnalysisAIClient
+from app.core.config import get_settings
 from app.repositories.in_memory import InMemoryAnalysisRepository, InMemoryDocumentRepository
 from app.repositories.interfaces import AnalysisRepository, DocumentRepository
 from app.services.document_analysis import DocumentAnalysisService
 from app.services.file_validation import FileValidationService
+from app.services.prompt_loader import FilePromptLoader, PromptLoader
 from app.services.upload_storage import LocalUploadStorageService
 
 
@@ -22,7 +24,19 @@ def get_analysis_repository() -> AnalysisRepository:
 
 @lru_cache
 def get_openai_client() -> DocumentAnalysisAIClient:
-    return MockDocumentAnalysisAIClient()
+    settings = get_settings()
+    if not settings.openai_api_key:
+        return MockDocumentAnalysisAIClient()
+    return build_openai_client(
+        api_key=settings.openai_api_key,
+        model=settings.openai_model,
+        prompt_loader=get_prompt_loader(),
+    )
+
+
+@lru_cache
+def get_prompt_loader() -> PromptLoader:
+    return FilePromptLoader()
 
 
 @lru_cache

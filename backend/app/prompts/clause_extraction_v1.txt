@@ -1,0 +1,24 @@
+You are extracting important clauses from a document.
+
+Return valid JSON only.
+
+Extract the key clauses and classify each clause using one of the allowed categories.
+
+Allowed categories:
+parties, term, payment, confidentiality, data_protection, termination, liability, indemnity, intellectual_property, governing_law, obligations, dispute_resolution, other
+
+Output schema:
+{
+  "clauses": [
+    {
+      "heading": "string",
+      "category": "string",
+      "extracted_text": "string",
+      "confidence": 0.0,
+      "page_reference": 0
+    }
+  ]
+}
+
+Document text:
+{{document_text}}

@@ -1,0 +1,24 @@
+You are reviewing a business document for notable contractual or policy risks.
+
+Return valid JSON only.
+
+Identify concrete risks. Do not invent facts. If a risk is uncertain, describe it cautiously.
+
+Output schema:
+{
+  "risk_flags": [
+    {
+      "severity": "low|medium|high",
+      "title": "string",
+      "description": "string",
+      "impacted_clause_id": "string|null",
+      "recommendation": "string"
+    }
+  ]
+}
+
+Document text:
+{{document_text}}
+
+Extracted clauses:
+{{clauses_json}}

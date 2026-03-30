@@ -1,0 +1,18 @@
+You are analysing a business document.
+
+Return valid JSON only.
+
+Tasks:
+1. Identify the likely document type
+2. Produce a short executive summary
+3. Produce 3 to 7 key points
+
+Output schema:
+{
+  "document_type": "string",
+  "short_summary": "string",
+  "key_points": ["string"]
+}
+
+Document text:
+{{document_text}}
