@@ -73,7 +73,7 @@
     "task_id": 8,
     "phase": "Phase 1 \u2014 Repository and foundation",
     "title": "Add root-level setup guidance and developer scripts documentation",
-    "status": "not_started",
+    "status": "completed",
     "acceptance_criteria": [
       "Task output is implemented and verified"
     ],

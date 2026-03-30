@@ -16,7 +16,7 @@ This plan combines:
 - [x] Task 5: Create repository interfaces and AI client dependency boundaries
 - [x] Task 6: Create React + TypeScript frontend skeleton
 - [ ] Task 7: Add frontend routing, app shell, and shared UI primitives
-- [ ] Task 8: Add root-level setup guidance and developer scripts documentation
+- [x] Task 8: Add root-level setup guidance and developer scripts documentation
 
 ## Phase 2 — Backend ingestion and parsing
 
