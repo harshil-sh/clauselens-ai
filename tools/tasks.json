@@ -83,7 +83,7 @@
     "task_id": 9,
     "phase": "Phase 2 \u2014 Backend ingestion and parsing",
     "title": "Implement upload endpoint with file type and size validation",
-    "status": "not_started",
+    "status": "completed",
     "acceptance_criteria": [
       "Task output is implemented and verified"
     ],

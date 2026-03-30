@@ -1,11 +1,25 @@
 from fastapi import APIRouter, Depends, File, UploadFile
 
-from app.api.deps import get_document_analysis_service
+from app.api.deps import get_document_analysis_service, get_file_validation_service
 from app.core.errors import ApiError
-from app.schemas.document import AnalysisResponse, RecentAnalysesResponse
+from app.schemas.document import AnalysisResponse, RecentAnalysesResponse, UploadResponse
 from app.services.document_analysis import DocumentAnalysisService
+from app.services.file_validation import FileValidationService
 
 router = APIRouter(prefix="/documents", tags=["documents"])
+
+
+@router.post("/upload", response_model=UploadResponse)
+async def upload_document(
+    file: UploadFile = File(...),
+    validation_service: FileValidationService = Depends(get_file_validation_service),
+) -> UploadResponse:
+    validated = await validation_service.validate_upload(file)
+    return UploadResponse(
+        filename=validated.filename,
+        content_type=validated.content_type,
+        size_bytes=validated.size_bytes,
+    )
 
 
 @router.post("/analyse", response_model=AnalysisResponse)

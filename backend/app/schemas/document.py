@@ -4,6 +4,12 @@ from typing import Optional
 from pydantic import BaseModel, Field
 
 
+class UploadResponse(BaseModel):
+    filename: str
+    content_type: str | None = None
+    size_bytes: int
+
+
 class SummaryResponse(BaseModel):
     short_summary: str
     key_points: list[str] = Field(default_factory=list)
