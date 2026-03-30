@@ -3,6 +3,7 @@ from app.api.deps import (
     get_document_repository,
     get_openai_client,
     get_prompt_loader,
+    get_request_rate_limiter,
     get_sqlite_database,
 )
 from app.clients.openai import OpenAIDocumentAnalysisAIClient
@@ -12,6 +13,7 @@ from app.repositories.interfaces import AnalysisRepository, DocumentRepository
 from app.repositories.sqlite import SQLiteAnalysisRepository, SQLiteDatabase, SQLiteDocumentRepository
 from app.services.document_analysis import DocumentAnalysisService
 from app.services.prompt_loader import FilePromptLoader
+from app.services.rate_limiting import NoOpRequestRateLimiter, RequestRateLimiter
 
 
 def test_document_repository_boundary_uses_sqlite_implementation(
@@ -136,3 +138,18 @@ def test_openai_boundary_uses_sdk_client_when_api_key_present(monkeypatch) -> No
     clear_settings_cache()
     deps.get_openai_client.cache_clear()
     deps.get_prompt_loader.cache_clear()
+
+
+def test_rate_limiter_boundary_uses_no_op_strategy() -> None:
+    from app.api import deps
+
+    clear_settings_cache()
+    deps.get_request_rate_limiter.cache_clear()
+
+    limiter = get_request_rate_limiter()
+
+    assert isinstance(limiter, RequestRateLimiter)
+    assert isinstance(limiter, NoOpRequestRateLimiter)
+
+    clear_settings_cache()
+    deps.get_request_rate_limiter.cache_clear()

@@ -9,6 +9,7 @@ from starlette.requests import Request
 
 from app.core.config import Settings, get_settings
 from app.core.logging import request_id_context
+from app.services.rate_limiting import RequestRateLimiter
 
 logger = logging.getLogger(__name__)
 
@@ -71,6 +72,37 @@ class UploadSizeLimitMiddleware(BaseHTTPMiddleware):
         return await call_next(request)
 
 
+class RateLimitMiddleware(BaseHTTPMiddleware):
+    def __init__(self, app, api_v1_prefix: str, limiter: RequestRateLimiter) -> None:
+        super().__init__(app)
+        self._api_v1_prefix = api_v1_prefix
+        self._limiter = limiter
+
+    async def dispatch(self, request: Request, call_next):
+        if request.url.path.startswith(self._api_v1_prefix):
+            decision = self._limiter.evaluate(request)
+            if not decision.allowed:
+                content = {
+                    "error": {
+                        "code": "rate_limited",
+                        "message": "Too many requests. Please retry later.",
+                    }
+                }
+                response = JSONResponse(status_code=429, content=content)
+                if decision.retry_after_seconds is not None:
+                    response.headers["Retry-After"] = str(decision.retry_after_seconds)
+                for header, value in decision.headers.items():
+                    response.headers[header] = value
+                return response
+
+            response = await call_next(request)
+            for header, value in decision.headers.items():
+                response.headers[header] = value
+            return response
+
+        return await call_next(request)
+
+
 def create_app(settings: Settings | None = None) -> FastAPI:
     app_settings = settings or get_settings()
     app = FastAPI(title=app_settings.app_name)
@@ -95,6 +127,13 @@ def _configure_optional_features(app: FastAPI, settings: Settings) -> None:
 
     app.add_middleware(
         RequestContextMiddleware,
+    )
+    from app.api.deps import get_request_rate_limiter
+
+    app.add_middleware(
+        RateLimitMiddleware,
+        api_v1_prefix=settings.api_v1_prefix,
+        limiter=get_request_rate_limiter(),
     )
     app.add_middleware(
         CORSMiddleware,

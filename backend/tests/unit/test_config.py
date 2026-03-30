@@ -31,6 +31,7 @@ def test_settings_default_values() -> None:
         "http://localhost:3000",
         "http://localhost:5173",
     )
+    assert settings.rate_limit_strategy == "disabled"
 
 
 def test_settings_reads_environment_overrides(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -43,6 +44,7 @@ def test_settings_reads_environment_overrides(monkeypatch: pytest.MonkeyPatch) -
     monkeypatch.setenv("OPENAI_MODEL", "gpt-4.1")
     monkeypatch.setenv("OPENAI_API_KEY", "secret-key")
     monkeypatch.setenv("SQLITE_DB_PATH", "/tmp/clauselens-test.db")
+    monkeypatch.setenv("RATE_LIMIT_STRATEGY", "disabled")
 
     settings = get_settings()
 
@@ -58,6 +60,7 @@ def test_settings_reads_environment_overrides(monkeypatch: pytest.MonkeyPatch) -
         "https://app.example.com",
     )
     assert settings.max_upload_bytes == 25 * 1024 * 1024
+    assert settings.rate_limit_strategy == "disabled"
 
 
 def test_invalid_settings_raise_validation_error(monkeypatch: pytest.MonkeyPatch) -> None:

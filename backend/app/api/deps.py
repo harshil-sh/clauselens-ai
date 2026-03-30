@@ -13,6 +13,7 @@ from app.repositories.sqlite import (
 from app.services.document_analysis import DocumentAnalysisService
 from app.services.file_validation import FileValidationService
 from app.services.prompt_loader import FilePromptLoader, PromptLoader
+from app.services.rate_limiting import NoOpRequestRateLimiter, RequestRateLimiter
 from app.services.text_extraction import UploadedDocumentTextExtractionService
 from app.services.upload_storage import LocalUploadStorageService
 
@@ -73,3 +74,9 @@ def get_local_upload_storage_service() -> LocalUploadStorageService:
 @lru_cache
 def get_uploaded_document_text_extraction_service() -> UploadedDocumentTextExtractionService:
     return UploadedDocumentTextExtractionService()
+
+
+@lru_cache
+def get_request_rate_limiter() -> RequestRateLimiter:
+    settings = get_settings()
+    return NoOpRequestRateLimiter(strategy_name=settings.rate_limit_strategy)

@@ -26,6 +26,10 @@ class Settings(BaseSettings):
         default=("http://localhost:3000", "http://localhost:5173"),
         alias="CORS_ALLOWED_ORIGINS",
     )
+    rate_limit_strategy: Literal["disabled"] = Field(
+        default="disabled",
+        alias="RATE_LIMIT_STRATEGY",
+    )
 
     model_config = SettingsConfigDict(
         env_file=(".env", "backend/.env"),
