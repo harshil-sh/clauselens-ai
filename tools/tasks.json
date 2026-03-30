@@ -113,7 +113,7 @@
     "task_id": 12,
     "phase": "Phase 2 \u2014 Backend ingestion and parsing",
     "title": "Implement PDF text extraction service",
-    "status": "not_started",
+    "status": "completed",
     "acceptance_criteria": [
       "Task output is implemented and verified"
     ],
