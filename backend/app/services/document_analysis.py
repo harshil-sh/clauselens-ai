@@ -3,8 +3,9 @@ from __future__ import annotations
 from uuid import uuid4
 
 from app.clients.interfaces import DocumentAnalysisAIClient
-from app.domain.models import AnalysisResult, AnalysisSummary, Clause, RiskFlag
+from app.domain.models import AnalysisResult, AnalysisSummary, RiskFlag
 from app.repositories.interfaces import AnalysisRepository
+from app.services.clause_extraction import ClauseExtractionService
 from app.services.summary_analysis import SummaryAnalysisService
 
 
@@ -13,22 +14,12 @@ class DocumentAnalysisService:
         self.repository = repository
         self.openai_client = openai_client
         self.summary_service = SummaryAnalysisService(openai_client=openai_client)
+        self.clause_service = ClauseExtractionService(openai_client=openai_client)
 
     def analyse(self, filename: str, document_text: str) -> AnalysisResult:
         summary_result = self.summary_service.analyze(document_text)
-        clauses_payload = self.openai_client.extract_clauses(document_text)
-
-        clauses = [
-            Clause(
-                clause_id=f"clause_{index + 1}",
-                heading=item["heading"],
-                category=item["category"],
-                extracted_text=item["extracted_text"],
-                confidence=float(item.get("confidence", 0.0)),
-                page_reference=item.get("page_reference"),
-            )
-            for index, item in enumerate(clauses_payload.get("clauses", []))
-        ]
+        clause_result = self.clause_service.analyze(document_text)
+        clauses = clause_result.clauses
 
         risks_payload = self.openai_client.assess_risks(
             document_text,

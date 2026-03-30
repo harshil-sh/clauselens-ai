@@ -58,3 +58,8 @@ def test_document_analysis_service_applies_summary_mapping() -> None:
     assert result.document_type == "service_agreement"
     assert result.summary.short_summary == "This document sets out support services."
     assert result.summary.key_points == ["Annual term", "Termination for breach"]
+    assert result.clauses[0].clause_id == "clause_1"
+    assert result.clauses[0].heading == "Term"
+    assert result.clauses[0].category == "term"
+    assert result.clauses[0].extracted_text == "The agreement runs for one year."
+    assert result.risk_flags[0].impacted_clause_id == "clause_1"

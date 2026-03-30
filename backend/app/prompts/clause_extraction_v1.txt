@@ -2,7 +2,14 @@ You are extracting important clauses from a document.
 
 Return valid JSON only.
 
-Extract the key clauses and classify each clause using one of the allowed categories.
+Tasks:
+1. Extract the most important contractual clauses grounded in the document text
+2. Classify each clause using exactly one allowed category
+3. Use a short descriptive heading for each clause
+4. Copy the supporting clause text verbatim or near-verbatim from the document
+5. Use "other" when no listed category fits
+6. Use a confidence score between 0 and 1
+7. Use `null` for page_reference when the source page is unknown
 
 Allowed categories:
 parties, term, payment, confidentiality, data_protection, termination, liability, indemnity, intellectual_property, governing_law, obligations, dispute_resolution, other
@@ -15,7 +22,7 @@ Output schema:
       "category": "string",
       "extracted_text": "string",
       "confidence": 0.0,
-      "page_reference": 0
+      "page_reference": 1
     }
   ]
 }

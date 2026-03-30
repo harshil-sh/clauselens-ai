@@ -173,7 +173,7 @@
     "task_id": 18,
     "phase": "Phase 3 \u2014 AI prompt contracts and analysis services",
     "title": "Implement clause extraction prompt and mapping logic",
-    "status": "not_started",
+    "status": "completed",
     "acceptance_criteria": [
       "Task output is implemented and verified"
     ],
