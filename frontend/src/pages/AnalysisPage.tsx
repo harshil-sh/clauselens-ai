@@ -20,6 +20,28 @@ function formatClauseCategoryLabel(category: string) {
     .join(" ");
 }
 
+function getSeverityTone(severity: string): "neutral" | "accent" | "warning" {
+  switch (severity.trim().toLowerCase()) {
+    case "critical":
+    case "high":
+      return "warning";
+    case "medium":
+      return "accent";
+    default:
+      return "neutral";
+  }
+}
+
+function formatSeverityLabel(severity: string) {
+  const normalizedSeverity = severity.trim().toLowerCase();
+
+  if (!normalizedSeverity) {
+    return "Unknown";
+  }
+
+  return normalizedSeverity.charAt(0).toUpperCase() + normalizedSeverity.slice(1);
+}
+
 export function AnalysisPage() {
   const { documentId = "" } = useParams();
   const query = useQuery({
@@ -41,6 +63,7 @@ export function AnalysisPage() {
   const clausesCount = analysis.clauses.length;
   const risksCount = analysis.risk_flags.length;
   const keyPointsCount = analysis.summary.key_points.length;
+  const clausesById = new Map(analysis.clauses.map((clause) => [clause.clause_id, clause]));
   const clauseGroups = analysis.clauses.reduce<
     Array<{
       category: string;
@@ -154,20 +177,36 @@ export function AnalysisPage() {
 
       <Card>
         <h2>Risk flags</h2>
-        {analysis.risk_flags.map((risk) => (
-          <article key={risk.risk_id} className="stacked-item">
-            <div className="risk-flag__header">
-              <strong>{risk.title}</strong>
-              <Badge tone={risk.severity.toLowerCase() === "high" ? "warning" : "neutral"}>
-                {risk.severity}
-              </Badge>
-            </div>
-            <p>{risk.description}</p>
-            <p>
-              <strong>Recommendation:</strong> {risk.recommendation}
-            </p>
-          </article>
-        ))}
+        <div className="analysis-page__risk-list">
+          {analysis.risk_flags.map((risk) => {
+            const impactedClause = risk.impacted_clause_id
+              ? clausesById.get(risk.impacted_clause_id)
+              : undefined;
+
+            return (
+              <article key={risk.risk_id} className="analysis-page__risk-item stacked-item">
+                <div className="risk-flag__header">
+                  <div className="analysis-page__risk-heading">
+                    <strong>{risk.title}</strong>
+                    {impactedClause ? (
+                      <span className="analysis-page__risk-clause-ref">
+                        Related clause: {impactedClause.heading}
+                      </span>
+                    ) : null}
+                  </div>
+                  <Badge tone={getSeverityTone(risk.severity)}>
+                    {formatSeverityLabel(risk.severity)} severity
+                  </Badge>
+                </div>
+                <p>{risk.description}</p>
+                <div className="analysis-page__recommendation">
+                  <span className="analysis-page__recommendation-label">Recommendation</span>
+                  <p>{risk.recommendation}</p>
+                </div>
+              </article>
+            );
+          })}
+        </div>
       </Card>
     </section>
   );

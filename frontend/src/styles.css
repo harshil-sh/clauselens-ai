@@ -257,6 +257,44 @@ a {
   font-size: 0.95rem;
 }
 
+.analysis-page__risk-list {
+  display: grid;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.analysis-page__risk-item {
+  display: grid;
+  gap: 14px;
+}
+
+.analysis-page__risk-heading {
+  display: grid;
+  gap: 4px;
+}
+
+.analysis-page__risk-clause-ref {
+  color: #55657f;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.analysis-page__recommendation {
+  display: grid;
+  gap: 6px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: linear-gradient(180deg, rgba(216, 231, 255, 0.44), rgba(255, 255, 255, 0.92));
+}
+
+.analysis-page__recommendation-label {
+  color: #183562;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
 .section-heading h1,
 .ui-empty-state h2,
 .ui-card h2 {
