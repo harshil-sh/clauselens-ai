@@ -3,9 +3,10 @@ You are analysing a business document.
 Return valid JSON only.
 
 Tasks:
-1. Identify the likely document type
-2. Produce a short executive summary
-3. Produce 3 to 7 key points
+1. Identify the likely document type using a concise lowercase label
+2. Use "unknown" for document_type if the text is unclear
+3. Produce a short executive summary grounded in the document text
+4. Produce 3 to 7 concise key points without duplicating the summary
 
 Output schema:
 {

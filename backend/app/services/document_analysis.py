@@ -5,15 +5,17 @@ from uuid import uuid4
 from app.clients.interfaces import DocumentAnalysisAIClient
 from app.domain.models import AnalysisResult, AnalysisSummary, Clause, RiskFlag
 from app.repositories.interfaces import AnalysisRepository
+from app.services.summary_analysis import SummaryAnalysisService
 
 
 class DocumentAnalysisService:
     def __init__(self, repository: AnalysisRepository, openai_client: DocumentAnalysisAIClient) -> None:
         self.repository = repository
         self.openai_client = openai_client
+        self.summary_service = SummaryAnalysisService(openai_client=openai_client)
 
     def analyse(self, filename: str, document_text: str) -> AnalysisResult:
-        summary_payload = self.openai_client.summarize(document_text)
+        summary_result = self.summary_service.analyze(document_text)
         clauses_payload = self.openai_client.extract_clauses(document_text)
 
         clauses = [
@@ -56,10 +58,10 @@ class DocumentAnalysisService:
         result = AnalysisResult(
             document_id=f"doc_{uuid4().hex[:12]}",
             filename=filename,
-            document_type=summary_payload.get("document_type", "unknown"),
+            document_type=summary_result.document_type,
             summary=AnalysisSummary(
-                short_summary=summary_payload.get("short_summary", ""),
-                key_points=list(summary_payload.get("key_points", [])),
+                short_summary=summary_result.summary.short_summary,
+                key_points=list(summary_result.summary.key_points),
             ),
             clauses=clauses,
             risk_flags=risk_flags,

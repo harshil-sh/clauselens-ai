@@ -163,7 +163,7 @@
     "task_id": 17,
     "phase": "Phase 3 \u2014 AI prompt contracts and analysis services",
     "title": "Implement structured summary prompt and mapping logic",
-    "status": "not_started",
+    "status": "completed",
     "acceptance_criteria": [
       "Task output is implemented and verified"
     ],
