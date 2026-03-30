@@ -433,7 +433,7 @@
     "task_id": 44,
     "phase": "Phase 6 \u2014 Hardening and portfolio polish",
     "title": "Add interview talking points and architecture trade-off summary",
-    "status": "not_started",
+    "status": "completed",
     "acceptance_criteria": [
       "Task output is implemented and verified"
     ],

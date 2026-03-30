@@ -150,3 +150,4 @@ python3 tools/codex_portfolio_runner.py --help
 ## Additional context
 
 See [`docs/README.md`](/home/harshil/workspace/clauselens-ai/docs/README.md) for the broader product and portfolio overview.
+See [`docs/INTERVIEW_TALKING_POINTS.md`](/home/harshil/workspace/clauselens-ai/docs/INTERVIEW_TALKING_POINTS.md) for interview-ready talking points and architecture trade-offs.
