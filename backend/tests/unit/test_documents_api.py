@@ -4,7 +4,8 @@ from io import BytesIO
 
 from fastapi import UploadFile
 
-from app.api.v1.documents import analyse_document
+from app.api.v1.documents import analyse_document, get_document_analysis
+from app.core.errors import ApiError
 from app.domain.models import AnalysisResult, AnalysisSummary, Clause, ExtractedDocument, RiskFlag
 from app.services.file_validation import ValidatedUpload
 
@@ -35,36 +36,45 @@ class StubAnalysisService:
     def analyse(self, filename: str, document_text: str) -> AnalysisResult:
         assert filename == "contract.txt"
         assert document_text == "Normalized contract text."
-        return AnalysisResult(
-            document_id="doc_123",
-            filename=filename,
-            document_type="contract",
-            summary=AnalysisSummary(
-                short_summary="Short summary",
-                key_points=["Point 1", "Point 2"],
-            ),
-            clauses=[
-                Clause(
-                    clause_id="clause_1",
-                    heading="Termination",
-                    category="termination",
-                    extracted_text="Either party may terminate for breach.",
-                    confidence=0.91,
-                    page_reference=2,
-                )
-            ],
-            risk_flags=[
-                RiskFlag(
-                    risk_id="risk_1",
-                    severity="medium",
-                    title="Termination rights are narrow",
-                    description="The clause allows termination only for breach.",
-                    recommendation="Confirm whether convenience termination is needed.",
-                    impacted_clause_id="clause_1",
-                )
-            ],
-            created_at=datetime(2026, 3, 30, 10, 0, 0),
-        )
+        return build_analysis_result(filename=filename)
+
+    def get_by_id(self, document_id: str) -> AnalysisResult | None:
+        if document_id == "doc_123":
+            return build_analysis_result(filename="contract.txt")
+        return None
+
+
+def build_analysis_result(*, filename: str) -> AnalysisResult:
+    return AnalysisResult(
+        document_id="doc_123",
+        filename=filename,
+        document_type="contract",
+        summary=AnalysisSummary(
+            short_summary="Short summary",
+            key_points=["Point 1", "Point 2"],
+        ),
+        clauses=[
+            Clause(
+                clause_id="clause_1",
+                heading="Termination",
+                category="termination",
+                extracted_text="Either party may terminate for breach.",
+                confidence=0.91,
+                page_reference=2,
+            )
+        ],
+        risk_flags=[
+            RiskFlag(
+                risk_id="risk_1",
+                severity="medium",
+                title="Termination rights are narrow",
+                description="The clause allows termination only for breach.",
+                recommendation="Confirm whether convenience termination is needed.",
+                impacted_clause_id="clause_1",
+            )
+        ],
+        created_at=datetime(2026, 3, 30, 10, 0, 0),
+    )
 
 
 def test_analyse_document_returns_structured_response() -> None:
@@ -85,3 +95,35 @@ def test_analyse_document_returns_structured_response() -> None:
     assert response.clauses[0].clause_id == "clause_1"
     assert response.clauses[0].page_reference == 2
     assert response.risk_flags[0].impacted_clause_id == "clause_1"
+
+
+def test_get_document_analysis_returns_structured_response() -> None:
+    response = asyncio.run(
+        get_document_analysis(
+            document_id="doc_123",
+            service=StubAnalysisService(),
+        )
+    )
+
+    assert response.document_id == "doc_123"
+    assert response.filename == "contract.txt"
+    assert response.document_type == "contract"
+    assert response.summary.short_summary == "Short summary"
+    assert response.clauses[0].clause_id == "clause_1"
+    assert response.risk_flags[0].impacted_clause_id == "clause_1"
+
+
+def test_get_document_analysis_raises_not_found_for_unknown_document_id() -> None:
+    try:
+        asyncio.run(
+            get_document_analysis(
+                document_id="doc_missing",
+                service=StubAnalysisService(),
+            )
+        )
+    except ApiError as exc:
+        assert exc.status_code == 404
+        assert exc.code == "not_found"
+        assert exc.message == "Analysis result was not found."
+    else:
+        raise AssertionError("Expected ApiError for unknown document id")

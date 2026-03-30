@@ -16,6 +16,14 @@ from app.services.upload_storage import LocalUploadStorageService
 router = APIRouter(prefix="/documents", tags=["documents"])
 
 
+def _build_analysis_response(result) -> AnalysisResponse:
+    return AnalysisResponse.model_validate(result.__dict__ | {
+        "summary": result.summary.__dict__,
+        "clauses": [clause.__dict__ for clause in result.clauses],
+        "risk_flags": [risk.__dict__ for risk in result.risk_flags],
+    })
+
+
 @router.post("/upload", response_model=UploadResponse)
 async def upload_document(
     file: UploadFile = File(...),
@@ -44,26 +52,18 @@ async def analyse_document(
     validated = await validation_service.validate_upload(file)
     extracted = extraction_service.extract(validated)
     result = service.analyse(filename=validated.filename, document_text=extracted.extracted_text)
-    return AnalysisResponse.model_validate(result.__dict__ | {
-        "summary": result.summary.__dict__,
-        "clauses": [clause.__dict__ for clause in result.clauses],
-        "risk_flags": [risk.__dict__ for risk in result.risk_flags],
-    })
+    return _build_analysis_response(result)
 
 
 @router.get("/{document_id}", response_model=AnalysisResponse)
-def get_document_analysis(
+async def get_document_analysis(
     document_id: str,
     service: DocumentAnalysisService = Depends(get_document_analysis_service),
 ) -> AnalysisResponse:
     result = service.get_by_id(document_id)
     if result is None:
         raise ApiError(code="not_found", message="Analysis result was not found.", status_code=404)
-    return AnalysisResponse.model_validate(result.__dict__ | {
-        "summary": result.summary.__dict__,
-        "clauses": [clause.__dict__ for clause in result.clauses],
-        "risk_flags": [risk.__dict__ for risk in result.risk_flags],
-    })
+    return _build_analysis_response(result)
 
 
 @router.get("", response_model=RecentAnalysesResponse)

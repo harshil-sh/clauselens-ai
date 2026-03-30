@@ -253,7 +253,7 @@
     "task_id": 26,
     "phase": "Phase 4 \u2014 Persistence and retrieval",
     "title": "Add endpoint to retrieve analysis by document id",
-    "status": "not_started",
+    "status": "completed",
     "acceptance_criteria": [
       "Task output is implemented and verified"
     ],
