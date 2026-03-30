@@ -42,7 +42,7 @@ This plan combines:
 ## Phase 4 — Persistence and retrieval
 
 - [ ] Task 24: Add SQLite models and repositories for documents and analyses
-- [ ] Task 25: Persist successful analysis results
+- [x] Task 25: Persist successful analysis results
 - [ ] Task 26: Add endpoint to retrieve analysis by document id
 - [ ] Task 27: Add endpoint to list recent analyses
 - [ ] Task 28: Add integration tests for persistence and retrieval flows

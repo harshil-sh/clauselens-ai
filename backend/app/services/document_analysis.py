@@ -37,10 +37,10 @@ class DocumentAnalysisService:
         self.risk_service = risk_service or RiskAssessmentService(openai_client=openai_client)
 
     def analyse(self, filename: str, document_text: str) -> AnalysisResult:
-        summary_result = self._analyze_summary(document_text)
-        clause_result = self._analyze_clauses(document_text)
+        summary_result, summary_successful = self._analyze_summary(document_text)
+        clause_result, clause_successful = self._analyze_clauses(document_text)
         clauses = clause_result.clauses
-        risk_result = self._analyze_risks(document_text, clauses)
+        risk_result, risk_successful = self._analyze_risks(document_text, clauses)
 
         result = self._build_analysis_result(
             filename=filename,
@@ -48,11 +48,13 @@ class DocumentAnalysisService:
             clause_result=clause_result,
             risk_result=risk_result,
         )
-        return self.repository.save(result)
+        if summary_successful and clause_successful and risk_successful:
+            return self.repository.save(result)
+        return result
 
-    def _analyze_summary(self, document_text: str) -> SummaryAnalysisResult:
+    def _analyze_summary(self, document_text: str) -> tuple[SummaryAnalysisResult, bool]:
         try:
-            return self.summary_service.analyze(document_text)
+            return self.summary_service.analyze(document_text), True
         except ValueError:
             logger.warning("Falling back to default summary after malformed AI response.")
             return SummaryAnalysisResult(
@@ -61,21 +63,25 @@ class DocumentAnalysisService:
                     short_summary=FALLBACK_SUMMARY,
                     key_points=[],
                 ),
-            )
+            ), False
 
-    def _analyze_clauses(self, document_text: str) -> ClauseExtractionResult:
+    def _analyze_clauses(self, document_text: str) -> tuple[ClauseExtractionResult, bool]:
         try:
-            return self.clause_service.analyze(document_text)
+            return self.clause_service.analyze(document_text), True
         except ValueError:
             logger.warning("Falling back to empty clauses after malformed AI response.")
-            return ClauseExtractionResult(clauses=[])
+            return ClauseExtractionResult(clauses=[]), False
 
-    def _analyze_risks(self, document_text: str, clauses: list[Clause]) -> RiskAssessmentResult:
+    def _analyze_risks(
+        self,
+        document_text: str,
+        clauses: list[Clause],
+    ) -> tuple[RiskAssessmentResult, bool]:
         try:
-            return self.risk_service.analyze(document_text, clauses)
+            return self.risk_service.analyze(document_text, clauses), True
         except ValueError:
             logger.warning("Falling back to empty risk flags after malformed AI response.")
-            return RiskAssessmentResult(risk_flags=[])
+            return RiskAssessmentResult(risk_flags=[]), False
 
     def _build_analysis_result(
         self,

@@ -156,4 +156,4 @@ def test_document_analysis_service_falls_back_when_ai_responses_are_malformed() 
     assert result.summary.key_points == []
     assert result.clauses == []
     assert result.risk_flags == []
-    assert repository.saved_results == [result]
+    assert repository.saved_results == []
