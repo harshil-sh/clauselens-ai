@@ -323,7 +323,7 @@
     "task_id": 33,
     "phase": "Phase 5 \u2014 Frontend analyser experience",
     "title": "Add loading, error, and empty states",
-    "status": "not_started",
+    "status": "completed",
     "acceptance_criteria": [
       "Task output is implemented and verified"
     ],

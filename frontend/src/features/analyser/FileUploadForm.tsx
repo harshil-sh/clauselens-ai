@@ -2,6 +2,7 @@ import type { FormEvent } from "react";
 import { useState } from "react";
 import { Button } from "../../components/ui/Button";
 import { Card } from "../../components/ui/Card";
+import { EmptyState } from "../../components/ui/EmptyState";
 import { getUploadConstraints, validateSelectedFile } from "./fileValidation";
 
 type Props = {
@@ -13,6 +14,8 @@ export function FileUploadForm({ onSubmit }: Props) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string>("");
   const constraints = getUploadConstraints();
+  const validationMessage = validateSelectedFile(file);
+  const canSubmit = !submitting && Boolean(file) && !validationMessage;
 
   function handleFileChange(nextFile: File | null) {
     setFile(nextFile);
@@ -45,6 +48,12 @@ export function FileUploadForm({ onSubmit }: Props) {
         <p className="upload-form__meta">
           Supported file types: {constraints.supportedFileTypesLabel} up to {constraints.maxUploadLabel}
         </p>
+        {!file && !submitting ? (
+          <EmptyState
+            title="No document selected"
+            description="Choose a PDF, DOCX, or TXT file to start the analysis workflow."
+          />
+        ) : null}
         <label className="upload-form__field">
           <span>Select a document</span>
           <input
@@ -57,15 +66,31 @@ export function FileUploadForm({ onSubmit }: Props) {
         {file ? (
           <div className="upload-form__selection" aria-live="polite">
             <strong>{file.name}</strong>
-            <span>{(file.size / 1024).toFixed(1)} KB selected</span>
+            <span>
+              {(file.size / 1024).toFixed(1)} KB selected
+              {submitting ? " • Analysis in progress" : ""}
+            </span>
           </div>
         ) : null}
+        {submitting ? (
+          <EmptyState
+            tone="loading"
+            title="Analysing document"
+            description="Uploading the file and generating the summary, clauses, and risk flags."
+          />
+        ) : null}
         <div className="upload-form__actions">
-          <Button type="submit" disabled={submitting}>
+          <Button type="submit" disabled={!canSubmit}>
             {submitting ? "Analysing..." : "Analyse document"}
           </Button>
         </div>
-        {error ? <p className="upload-form__error">{error}</p> : null}
+        {error ? (
+          <EmptyState
+            tone="error"
+            title="Analysis failed"
+            description={error}
+          />
+        ) : null}
       </form>
     </Card>
   );

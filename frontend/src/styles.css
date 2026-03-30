@@ -370,7 +370,34 @@ a {
 }
 
 .ui-empty-state {
+  display: grid;
+  gap: 12px;
   text-align: center;
+  justify-items: center;
+}
+
+.ui-empty-state[data-tone="loading"] {
+  border-color: rgba(50, 103, 191, 0.18);
+  background: linear-gradient(180deg, rgba(216, 231, 255, 0.5), rgba(255, 255, 255, 0.95));
+}
+
+.ui-empty-state[data-tone="error"] {
+  border-color: rgba(161, 39, 39, 0.16);
+  background: linear-gradient(180deg, rgba(255, 233, 233, 0.82), rgba(255, 255, 255, 0.95));
+}
+
+.ui-empty-state__indicator {
+  width: 28px;
+  height: 28px;
+  border: 3px solid rgba(50, 103, 191, 0.16);
+  border-top-color: #3267bf;
+  border-radius: 999px;
+  animation: ui-empty-state-spin 0.85s linear infinite;
+}
+
+.ui-empty-state__action {
+  display: flex;
+  justify-content: center;
 }
 
 .upload-page__badges {
@@ -401,6 +428,10 @@ a {
   display: flex;
 }
 
+.upload-form > .ui-empty-state {
+  padding: 18px;
+}
+
 .upload-form__selection {
   display: grid;
   gap: 4px;
@@ -419,6 +450,12 @@ a {
 .upload-form__error {
   color: #a12727;
   font-weight: 600;
+}
+
+@keyframes ui-empty-state-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .content-list {
