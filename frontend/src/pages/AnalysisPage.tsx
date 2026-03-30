@@ -1,6 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
 import { useParams } from "react-router-dom";
 import { getAnalysis } from "../api/client";
+import { Badge } from "../components/ui/Badge";
+import { Card } from "../components/ui/Card";
+import { EmptyState } from "../components/ui/EmptyState";
+import { SectionHeading } from "../components/ui/SectionHeading";
 
 export function AnalysisPage() {
   const { documentId = "" } = useParams();
@@ -11,51 +15,67 @@ export function AnalysisPage() {
   });
 
   if (query.isLoading) {
-    return <p>Loading analysis...</p>;
+    return <EmptyState title="Loading analysis" description="Fetching document summary, clauses, and risks." />;
   }
 
   if (query.isError || !query.data) {
-    return <p>Unable to load analysis.</p>;
+    return <EmptyState title="Analysis unavailable" description="The requested analysis could not be loaded." />;
   }
 
   const analysis = query.data;
 
   return (
-    <section>
-      <h2>{analysis.filename}</h2>
-      <p><strong>Type:</strong> {analysis.document_type}</p>
+    <section className="page-section">
+      <SectionHeading
+        eyebrow="Analysis"
+        title={analysis.filename}
+        description={
+          <>
+            Document type: <strong>{analysis.document_type}</strong>
+          </>
+        }
+      />
 
-      <section style={{ marginTop: "20px" }}>
-        <h3>Executive summary</h3>
+      <Card>
+        <h2>Executive summary</h2>
         <p>{analysis.summary.short_summary}</p>
-        <ul>
+        <ul className="content-list">
           {analysis.summary.key_points.map((point) => (
             <li key={point}>{point}</li>
           ))}
         </ul>
-      </section>
+      </Card>
 
-      <section style={{ marginTop: "20px" }}>
-        <h3>Clauses</h3>
+      <Card>
+        <h2>Clauses</h2>
         {analysis.clauses.map((clause) => (
-          <article key={clause.clause_id} style={{ borderTop: "1px solid #eee", paddingTop: "12px", marginTop: "12px" }}>
+          <article key={clause.clause_id} className="stacked-item">
             <strong>{clause.heading}</strong>
-            <p><em>{clause.category}</em></p>
+            <p>
+              <em>{clause.category}</em>
+            </p>
             <p>{clause.extracted_text}</p>
           </article>
         ))}
-      </section>
+      </Card>
 
-      <section style={{ marginTop: "20px" }}>
-        <h3>Risk flags</h3>
+      <Card>
+        <h2>Risk flags</h2>
         {analysis.risk_flags.map((risk) => (
-          <article key={risk.risk_id} style={{ borderTop: "1px solid #eee", paddingTop: "12px", marginTop: "12px" }}>
-            <strong>{risk.title}</strong> — <span>{risk.severity}</span>
+          <article key={risk.risk_id} className="stacked-item">
+            <div className="risk-flag__header">
+              <strong>{risk.title}</strong>
+              <Badge tone={risk.severity.toLowerCase() === "high" ? "warning" : "neutral"}>
+                {risk.severity}
+              </Badge>
+            </div>
             <p>{risk.description}</p>
-            <p><strong>Recommendation:</strong> {risk.recommendation}</p>
+            <p>
+              <strong>Recommendation:</strong> {risk.recommendation}
+            </p>
           </article>
         ))}
-      </section>
+      </Card>
     </section>
   );
 }

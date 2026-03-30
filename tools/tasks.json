@@ -63,7 +63,7 @@
     "task_id": 7,
     "phase": "Phase 1 \u2014 Repository and foundation",
     "title": "Add frontend routing, app shell, and shared UI primitives",
-    "status": "not_started",
+    "status": "completed",
     "acceptance_criteria": [
       "Task output is implemented and verified"
     ],
