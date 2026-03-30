@@ -1,11 +1,16 @@
 from pathlib import Path
 from types import SimpleNamespace
+from zipfile import ZipFile
 
 import pytest
 
 from app.core.errors import ApiError
 from app.services import text_extraction
-from app.services.text_extraction import PdfTextExtractionService, TxtTextExtractionService
+from app.services.text_extraction import (
+    DocxTextExtractionService,
+    PdfTextExtractionService,
+    TxtTextExtractionService,
+)
 
 
 def test_extract_txt_text_successfully(tmp_path: Path) -> None:
@@ -145,3 +150,83 @@ def test_extract_pdf_raises_when_no_text_is_found(
         service.extract(file_path)
 
     assert exc_info.value.code == "extraction_failed"
+
+
+def test_extract_docx_text_successfully(tmp_path: Path) -> None:
+    file_path = tmp_path / "contract.docx"
+    _write_docx(
+        file_path,
+        """
+        <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+          <w:body>
+            <w:p>
+              <w:r><w:t xml:space="preserve">  Payment terms apply. </w:t></w:r>
+              <w:r><w:tab/></w:r>
+              <w:r><w:t>Net 30</w:t></w:r>
+            </w:p>
+            <w:p>
+              <w:r><w:t>Renewal is annual.</w:t></w:r>
+              <w:r><w:br/></w:r>
+              <w:r><w:t>Notice is required.</w:t></w:r>
+            </w:p>
+          </w:body>
+        </w:document>
+        """.strip(),
+    )
+
+    service = DocxTextExtractionService()
+
+    extracted = service.extract(file_path)
+
+    assert extracted == "Payment terms apply. \tNet 30\n\nRenewal is annual.\nNotice is required."
+
+
+def test_extract_docx_rejects_non_docx_files(tmp_path: Path) -> None:
+    file_path = tmp_path / "contract.txt"
+    file_path.write_text("plain text", encoding="utf-8")
+
+    service = DocxTextExtractionService()
+
+    with pytest.raises(ApiError) as exc_info:
+        service.extract(file_path)
+
+    assert exc_info.value.code == "unsupported_file_type"
+
+
+def test_extract_docx_raises_for_invalid_archive(tmp_path: Path) -> None:
+    file_path = tmp_path / "contract.docx"
+    file_path.write_bytes(b"not a zip archive")
+
+    service = DocxTextExtractionService()
+
+    with pytest.raises(ApiError) as exc_info:
+        service.extract(file_path)
+
+    assert exc_info.value.code == "extraction_failed"
+
+
+def test_extract_docx_raises_when_no_text_is_found(tmp_path: Path) -> None:
+    file_path = tmp_path / "contract.docx"
+    _write_docx(
+        file_path,
+        """
+        <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+          <w:body>
+            <w:p><w:r><w:t>   </w:t></w:r></w:p>
+          </w:body>
+        </w:document>
+        """.strip(),
+    )
+
+    service = DocxTextExtractionService()
+
+    with pytest.raises(ApiError) as exc_info:
+        service.extract(file_path)
+
+    assert exc_info.value.code == "extraction_failed"
+
+
+def _write_docx(file_path: Path, document_xml: str) -> None:
+    with ZipFile(file_path, "w") as archive:
+        archive.writestr("[Content_Types].xml", "<Types></Types>")
+        archive.writestr("word/document.xml", document_xml)
