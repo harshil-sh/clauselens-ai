@@ -4,11 +4,13 @@ from app.api.deps import (
     get_document_analysis_service,
     get_file_validation_service,
     get_local_upload_storage_service,
+    get_uploaded_document_text_extraction_service,
 )
 from app.core.errors import ApiError
 from app.schemas.document import AnalysisResponse, RecentAnalysesResponse, UploadResponse
 from app.services.document_analysis import DocumentAnalysisService
 from app.services.file_validation import FileValidationService
+from app.services.text_extraction import UploadedDocumentTextExtractionService
 from app.services.upload_storage import LocalUploadStorageService
 
 router = APIRouter(prefix="/documents", tags=["documents"])
@@ -33,17 +35,15 @@ async def upload_document(
 @router.post("/analyse", response_model=AnalysisResponse)
 async def analyse_document(
     file: UploadFile = File(...),
+    validation_service: FileValidationService = Depends(get_file_validation_service),
+    extraction_service: UploadedDocumentTextExtractionService = Depends(
+        get_uploaded_document_text_extraction_service
+    ),
     service: DocumentAnalysisService = Depends(get_document_analysis_service),
 ) -> AnalysisResponse:
-    if not file.filename:
-        raise ApiError(code="missing_filename", message="Uploaded file must have a filename.", status_code=400)
-
-    file_bytes = await file.read()
-    if not file_bytes:
-        raise ApiError(code="empty_file", message="Uploaded file is empty.", status_code=400)
-
-    document_text = file_bytes.decode("utf-8", errors="ignore")
-    result = service.analyse(filename=file.filename, document_text=document_text)
+    validated = await validation_service.validate_upload(file)
+    extracted = extraction_service.extract(validated)
+    result = service.analyse(filename=validated.filename, document_text=extracted.extracted_text)
     return AnalysisResponse.model_validate(result.__dict__ | {
         "summary": result.summary.__dict__,
         "clauses": [clause.__dict__ for clause in result.clauses],

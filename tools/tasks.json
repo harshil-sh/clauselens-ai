@@ -213,7 +213,7 @@
     "task_id": 22,
     "phase": "Phase 3 \u2014 AI prompt contracts and analysis services",
     "title": "Expose `POST /api/v1/documents/analyse` returning structured output",
-    "status": "not_started",
+    "status": "completed",
     "acceptance_criteria": [
       "Task output is implemented and verified"
     ],

@@ -9,6 +9,7 @@ from app.repositories.interfaces import AnalysisRepository, DocumentRepository
 from app.services.document_analysis import DocumentAnalysisService
 from app.services.file_validation import FileValidationService
 from app.services.prompt_loader import FilePromptLoader, PromptLoader
+from app.services.text_extraction import UploadedDocumentTextExtractionService
 from app.services.upload_storage import LocalUploadStorageService
 
 
@@ -58,3 +59,8 @@ def get_local_upload_storage_service() -> LocalUploadStorageService:
         settings=get_settings(),
         repository=get_document_repository(),
     )
+
+
+@lru_cache
+def get_uploaded_document_text_extraction_service() -> UploadedDocumentTextExtractionService:
+    return UploadedDocumentTextExtractionService()

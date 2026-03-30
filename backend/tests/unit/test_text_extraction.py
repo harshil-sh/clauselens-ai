@@ -11,7 +11,9 @@ from app.services.text_extraction import (
     DocxTextExtractionService,
     PdfTextExtractionService,
     TxtTextExtractionService,
+    UploadedDocumentTextExtractionService,
 )
+from app.services.file_validation import ValidatedUpload
 
 
 def test_extract_txt_text_successfully(tmp_path: Path) -> None:
@@ -326,6 +328,42 @@ def test_extract_docx_raises_when_no_text_is_found(tmp_path: Path) -> None:
         service.extract(file_path)
 
     assert exc_info.value.code == "extraction_failed"
+
+
+def test_uploaded_document_text_extraction_uses_matching_extractor() -> None:
+    service = UploadedDocumentTextExtractionService()
+
+    extracted = service.extract(
+        ValidatedUpload(
+            filename="contract.txt",
+            content_type="text/plain",
+            size_bytes=24,
+            content=b"  Payment terms apply.  ",
+        )
+    )
+
+    assert extracted == ExtractedDocument(
+        filename="contract.txt",
+        file_extension=".txt",
+        extracted_text="Payment terms apply.",
+        char_count=len("Payment terms apply."),
+    )
+
+
+def test_uploaded_document_text_extraction_rejects_unknown_extensions() -> None:
+    service = UploadedDocumentTextExtractionService()
+
+    with pytest.raises(ApiError) as exc_info:
+        service.extract(
+            ValidatedUpload(
+                filename="contract.md",
+                content_type="text/markdown",
+                size_bytes=12,
+                content=b"# heading",
+            )
+        )
+
+    assert exc_info.value.code == "unsupported_file_type"
 
 
 def _write_docx(file_path: Path, document_xml: str) -> None:

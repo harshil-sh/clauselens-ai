@@ -2,11 +2,13 @@ from __future__ import annotations
 
 from importlib import import_module
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from xml.etree import ElementTree
 from zipfile import BadZipFile, ZipFile
 
 from app.core.errors import ApiError
 from app.domain.models import ExtractedDocument
+from app.services.file_validation import ValidatedUpload
 
 
 WORDPROCESSINGML_NAMESPACE = {"w": "http://schemas.openxmlformats.org/wordprocessingml/2006/main"}
@@ -168,3 +170,32 @@ class DocxTextExtractionService:
     def extract_document(self, file_path: str | Path) -> ExtractedDocument:
         extracted_text = self.extract(file_path)
         return _build_extracted_document(file_path, extracted_text)
+
+
+class UploadedDocumentTextExtractionService:
+    def __init__(
+        self,
+        txt_service: TxtTextExtractionService | None = None,
+        pdf_service: PdfTextExtractionService | None = None,
+        docx_service: DocxTextExtractionService | None = None,
+    ) -> None:
+        self._extractors = {
+            ".txt": txt_service or TxtTextExtractionService(),
+            ".pdf": pdf_service or PdfTextExtractionService(),
+            ".docx": docx_service or DocxTextExtractionService(),
+        }
+
+    def extract(self, upload: ValidatedUpload) -> ExtractedDocument:
+        extension = Path(upload.filename).suffix.lower()
+        extractor = self._extractors.get(extension)
+        if extractor is None:
+            raise ApiError(
+                code="unsupported_file_type",
+                message="Only PDF, DOCX, and TXT files are supported.",
+                status_code=400,
+            )
+
+        with TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir) / Path(upload.filename).name
+            temp_path.write_bytes(upload.content)
+            return extractor.extract_document(temp_path)
