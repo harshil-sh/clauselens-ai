@@ -84,6 +84,48 @@ def test_risk_response_mapper_rejects_invalid_severity() -> None:
         raise AssertionError("Expected a RiskMappingError for invalid severity.")
 
 
+def test_risk_response_mapper_skips_malformed_risk_entries() -> None:
+    mapper = RiskResponseMapper()
+
+    result = mapper.map(
+        {
+            "risk_flags": [
+                {
+                    "severity": "high",
+                    "title": "Unlimited liability",
+                    "description": "The contract does not cap supplier liability.",
+                    "recommendation": "Add a liability cap.",
+                    "impacted_clause_id": "clause_1",
+                },
+                {
+                    "severity": "critical",
+                    "title": "Invalid severity",
+                    "description": "This item should be skipped.",
+                    "recommendation": "Ignore it.",
+                },
+                {
+                    "severity": "low",
+                    "title": " ",
+                    "description": "This item is missing a title.",
+                    "recommendation": "Ignore it too.",
+                },
+            ]
+        },
+        valid_clause_ids={"clause_1"},
+    )
+
+    assert result.risk_flags == [
+        RiskFlag(
+            risk_id="risk_1",
+            severity="high",
+            title="Unlimited liability",
+            description="The contract does not cap supplier liability.",
+            recommendation="Add a liability cap.",
+            impacted_clause_id="clause_1",
+        )
+    ]
+
+
 def test_risk_assessment_service_uses_ai_client_and_mapper() -> None:
     client = StubRiskAIClient(
         {

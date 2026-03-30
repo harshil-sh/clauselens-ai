@@ -25,21 +25,29 @@ class RiskResponseMapper:
         valid_clause_ids: set[str],
     ) -> RiskAssessmentResult:
         risk_flags: list[RiskFlag] = []
+        last_error: RiskMappingError | None = None
 
         for index, item in enumerate(payload.get("risk_flags", []), start=1):
-            risk_flags.append(
-                RiskFlag(
-                    risk_id=f"risk_{index}",
-                    severity=self._normalize_severity(item.get("severity", "")),
-                    title=self._normalize_required_text(item, field_name="title"),
-                    description=self._normalize_required_text(item, field_name="description"),
-                    recommendation=self._normalize_required_text(item, field_name="recommendation"),
-                    impacted_clause_id=self._normalize_impacted_clause_id(
-                        item.get("impacted_clause_id"),
-                        valid_clause_ids=valid_clause_ids,
-                    ),
+            try:
+                risk_flags.append(
+                    RiskFlag(
+                        risk_id=f"risk_{index}",
+                        severity=self._normalize_severity(item.get("severity", "")),
+                        title=self._normalize_required_text(item, field_name="title"),
+                        description=self._normalize_required_text(item, field_name="description"),
+                        recommendation=self._normalize_required_text(item, field_name="recommendation"),
+                        impacted_clause_id=self._normalize_impacted_clause_id(
+                            item.get("impacted_clause_id"),
+                            valid_clause_ids=valid_clause_ids,
+                        ),
+                    )
                 )
-            )
+            except RiskMappingError as exc:
+                last_error = exc
+                continue
+
+        if payload.get("risk_flags") and not risk_flags and last_error is not None:
+            raise last_error
 
         return RiskAssessmentResult(risk_flags=risk_flags)
 

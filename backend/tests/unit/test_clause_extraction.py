@@ -79,6 +79,45 @@ def test_clause_response_mapper_rejects_blank_extracted_text() -> None:
         raise AssertionError("Expected a ClauseMappingError for blank extracted_text.")
 
 
+def test_clause_response_mapper_skips_malformed_clause_entries() -> None:
+    mapper = ClauseResponseMapper()
+
+    result = mapper.map(
+        {
+            "clauses": [
+                {
+                    "heading": "Term",
+                    "category": "term",
+                    "extracted_text": "The agreement runs for one year.",
+                    "confidence": 0.9,
+                },
+                {
+                    "heading": "Broken clause",
+                    "category": "termination",
+                    "extracted_text": " ",
+                },
+                {
+                    "heading": "Payment",
+                    "category": "payment",
+                    "extracted_text": "Invoices are payable within 30 days.",
+                    "confidence": "not-a-number",
+                },
+            ]
+        }
+    )
+
+    assert result.clauses == [
+        Clause(
+            clause_id="clause_1",
+            heading="Term",
+            category="term",
+            extracted_text="The agreement runs for one year.",
+            confidence=0.9,
+            page_reference=None,
+        )
+    ]
+
+
 def test_clause_extraction_service_uses_ai_client_and_mapper() -> None:
     client = StubClauseAIClient(
         {

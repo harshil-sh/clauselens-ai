@@ -1,13 +1,18 @@
 from __future__ import annotations
 
+import logging
 from uuid import uuid4
 
 from app.clients.interfaces import DocumentAnalysisAIClient
-from app.domain.models import AnalysisResult, AnalysisSummary
+from app.domain.models import AnalysisResult, AnalysisSummary, Clause
 from app.repositories.interfaces import AnalysisRepository
 from app.services.clause_extraction import ClauseExtractionService, ClauseExtractionResult
 from app.services.risk_assessment import RiskAssessmentResult, RiskAssessmentService
 from app.services.summary_analysis import SummaryAnalysisResult, SummaryAnalysisService
+
+logger = logging.getLogger(__name__)
+
+FALLBACK_SUMMARY = "Analysis summary unavailable due to malformed AI output."
 
 
 class DocumentAnalysisService:
@@ -32,10 +37,10 @@ class DocumentAnalysisService:
         self.risk_service = risk_service or RiskAssessmentService(openai_client=openai_client)
 
     def analyse(self, filename: str, document_text: str) -> AnalysisResult:
-        summary_result = self.summary_service.analyze(document_text)
-        clause_result = self.clause_service.analyze(document_text)
+        summary_result = self._analyze_summary(document_text)
+        clause_result = self._analyze_clauses(document_text)
         clauses = clause_result.clauses
-        risk_result = self.risk_service.analyze(document_text, clauses)
+        risk_result = self._analyze_risks(document_text, clauses)
 
         result = self._build_analysis_result(
             filename=filename,
@@ -44,6 +49,33 @@ class DocumentAnalysisService:
             risk_result=risk_result,
         )
         return self.repository.save(result)
+
+    def _analyze_summary(self, document_text: str) -> SummaryAnalysisResult:
+        try:
+            return self.summary_service.analyze(document_text)
+        except ValueError:
+            logger.warning("Falling back to default summary after malformed AI response.")
+            return SummaryAnalysisResult(
+                document_type="unknown",
+                summary=AnalysisSummary(
+                    short_summary=FALLBACK_SUMMARY,
+                    key_points=[],
+                ),
+            )
+
+    def _analyze_clauses(self, document_text: str) -> ClauseExtractionResult:
+        try:
+            return self.clause_service.analyze(document_text)
+        except ValueError:
+            logger.warning("Falling back to empty clauses after malformed AI response.")
+            return ClauseExtractionResult(clauses=[])
+
+    def _analyze_risks(self, document_text: str, clauses: list[Clause]) -> RiskAssessmentResult:
+        try:
+            return self.risk_service.analyze(document_text, clauses)
+        except ValueError:
+            logger.warning("Falling back to empty risk flags after malformed AI response.")
+            return RiskAssessmentResult(risk_flags=[])
 
     def _build_analysis_result(
         self,

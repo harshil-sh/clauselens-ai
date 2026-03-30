@@ -35,13 +35,18 @@ class ClauseMappingError(ValueError):
 class ClauseResponseMapper:
     def map(self, payload: ClauseExtractionPayload) -> ClauseExtractionResult:
         clauses: list[Clause] = []
+        last_error: ClauseMappingError | None = None
 
         for index, item in enumerate(payload.get("clauses", []), start=1):
-            extracted_text = self._normalize_extracted_text(item)
-            heading = self._normalize_heading(item, index=index)
-            category = self._normalize_category(item.get("category", ""))
-            confidence = self._normalize_confidence(item.get("confidence"))
-            page_reference = self._normalize_page_reference(item.get("page_reference"))
+            try:
+                extracted_text = self._normalize_extracted_text(item)
+                heading = self._normalize_heading(item, index=index)
+                category = self._normalize_category(item.get("category", ""))
+                confidence = self._normalize_confidence(item.get("confidence"))
+                page_reference = self._normalize_page_reference(item.get("page_reference"))
+            except ClauseMappingError as exc:
+                last_error = exc
+                continue
 
             clauses.append(
                 Clause(
@@ -53,6 +58,9 @@ class ClauseResponseMapper:
                     page_reference=page_reference,
                 )
             )
+
+        if payload.get("clauses") and not clauses and last_error is not None:
+            raise last_error
 
         return ClauseExtractionResult(clauses=clauses)
 

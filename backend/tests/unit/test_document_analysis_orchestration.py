@@ -71,6 +71,21 @@ class StubRiskService:
         )
 
 
+class FailingSummaryService:
+    def analyze(self, document_text: str) -> SummaryAnalysisResult:
+        raise ValueError("Malformed summary payload.")
+
+
+class FailingClauseService:
+    def analyze(self, document_text: str) -> ClauseExtractionResult:
+        raise ValueError("Malformed clause payload.")
+
+
+class FailingRiskService:
+    def analyze(self, document_text: str, clauses: list[Clause]) -> RiskAssessmentResult:
+        raise ValueError("Malformed risk payload.")
+
+
 def test_document_analysis_service_orchestrates_full_analysis_and_persists_result() -> None:
     events: list[str] = []
     repository = RecordingAnalysisRepository()
@@ -119,3 +134,26 @@ def test_document_analysis_service_requires_openai_client_or_explicit_subservice
         assert "requires an openai_client" in str(exc)
     else:
         raise AssertionError("Expected a ValueError when orchestration dependencies are missing.")
+
+
+def test_document_analysis_service_falls_back_when_ai_responses_are_malformed() -> None:
+    repository = RecordingAnalysisRepository()
+    service = DocumentAnalysisService(
+        repository=repository,
+        summary_service=FailingSummaryService(),
+        clause_service=FailingClauseService(),
+        risk_service=FailingRiskService(),
+    )
+
+    result = service.analyse(
+        filename="msa.txt",
+        document_text="Managed services agreement text",
+    )
+
+    assert result.filename == "msa.txt"
+    assert result.document_type == "unknown"
+    assert result.summary.short_summary == "Analysis summary unavailable due to malformed AI output."
+    assert result.summary.key_points == []
+    assert result.clauses == []
+    assert result.risk_flags == []
+    assert repository.saved_results == [result]
