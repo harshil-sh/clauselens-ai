@@ -1,6 +1,44 @@
 # ClauseLens AI
 
-ClauseLens AI is a full-stack document analysis application with a FastAPI backend and a React + TypeScript frontend.
+ClauseLens AI is a full-stack document analysis application for contracts and policy documents. It combines a FastAPI backend with a React + TypeScript frontend to turn uploaded files into a structured summary, extracted clauses, and risk flags.
+
+## What it does
+
+ClauseLens AI is designed to demonstrate a production-minded AI workflow instead of a chat-only demo:
+
+- upload a PDF, DOCX, or TXT document
+- extract normalized document text
+- generate a structured executive summary
+- group clauses into readable categories
+- highlight risk flags with severity and rationale
+- re-open prior analyses and export JSON output
+
+## Demo flow
+
+Use this flow when walking the project through for reviewers or recruiters:
+
+1. Open the upload page and choose a contract or policy file.
+2. Submit the document to trigger the backend analysis pipeline.
+3. Review the executive summary and top key points on the analysis page.
+4. Scroll through clause groups to show structured extraction.
+5. Inspect the risk section to explain severity badges and impacted clauses.
+6. Download the JSON result and open the recent analyses page to show retrieval.
+
+## Screenshots
+
+Add final product screenshots under `docs/assets/screenshots/` using the placeholder names below, then replace the placeholder text with embedded images.
+
+- `docs/assets/screenshots/upload-page.png`: upload experience
+- `docs/assets/screenshots/analysis-summary.png`: executive summary and key metrics
+- `docs/assets/screenshots/analysis-risks.png`: clause groups and risk flags
+- `docs/assets/screenshots/recent-analyses.png`: history and retrieval flow
+
+Placeholder gallery:
+
+- `[Upload page screenshot placeholder](docs/assets/screenshots/upload-page.png)`
+- `[Analysis summary screenshot placeholder](docs/assets/screenshots/analysis-summary.png)`
+- `[Analysis risks screenshot placeholder](docs/assets/screenshots/analysis-risks.png)`
+- `[Recent analyses screenshot placeholder](docs/assets/screenshots/recent-analyses.png)`
 
 ## Repository layout
 
@@ -42,6 +80,10 @@ npm run dev
 The frontend runs on `http://localhost:5173`.
 
 By default, the frontend targets `http://localhost:8001/api/v1`. Override that with `VITE_API_BASE_URL` if needed.
+
+### 3. Optional demo seed
+
+After both services are running, upload one of the sample files already stored under `backend/data/uploads/` to exercise the full flow locally.
 
 ## Environment configuration
 
@@ -87,6 +129,13 @@ From `frontend/`:
 - `npm run build`: run TypeScript compilation and create a production build
 - `npm run preview`: preview the production build locally
 - `npm run typecheck`: run TypeScript type-checking without emitting files
+
+## Architecture snapshot
+
+- `backend/`: FastAPI routes, services, repositories, prompt contracts, and tests
+- `frontend/`: upload flow, analysis results, recent analyses, and UI tests
+- `docs/`: API, architecture, testing, deployment, and interview notes
+- `tools/`: local workflow automation for sequential task execution and verification
 
 ## Developer automation
 

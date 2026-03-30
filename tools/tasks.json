@@ -423,7 +423,7 @@
     "task_id": 43,
     "phase": "Phase 6 \u2014 Hardening and portfolio polish",
     "title": "Final README polish with screenshots placeholders and demo flow",
-    "status": "not_started",
+    "status": "completed",
     "acceptance_criteria": [
       "Task output is implemented and verified"
     ],

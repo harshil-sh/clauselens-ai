@@ -66,5 +66,5 @@ This plan combines:
 - [ ] Task 40: Add rate limiting placeholder or strategy boundary
 - [ ] Task 41: Improve automated test coverage across backend and frontend
 - [ ] Task 42: Add Dockerfiles for backend and frontend
-- [ ] Task 43: Final README polish with screenshots placeholders and demo flow
+- [x] Task 43: Final README polish with screenshots placeholders and demo flow
 - [ ] Task 44: Add interview talking points and architecture trade-off summary
