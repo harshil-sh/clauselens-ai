@@ -136,6 +136,43 @@ def test_create_app_rejects_upload_requests_over_limit_before_body_is_read() -> 
     }
 
 
+def test_create_app_returns_generated_request_id_header() -> None:
+    app = create_app(Settings(api_v1_prefix="/api/v1"))
+    messages = _run_request(
+        app,
+        method="GET",
+        path="/health",
+    )
+    response_start = next(
+        message for message in messages if message["type"] == "http.response.start"
+    )
+    response_headers = {
+        key.decode("latin-1"): value.decode("latin-1")
+        for key, value in response_start["headers"]
+    }
+
+    assert response_headers["x-request-id"].startswith("req_")
+
+
+def test_create_app_preserves_incoming_request_id_header() -> None:
+    app = create_app(Settings(api_v1_prefix="/api/v1"))
+    messages = _run_request(
+        app,
+        method="GET",
+        path="/health",
+        headers=[(b"x-request-id", b"req_external_123")],
+    )
+    response_start = next(
+        message for message in messages if message["type"] == "http.response.start"
+    )
+    response_headers = {
+        key.decode("latin-1"): value.decode("latin-1")
+        for key, value in response_start["headers"]
+    }
+
+    assert response_headers["x-request-id"] == "req_external_123"
+
+
 def test_invalid_cors_origins_raise_validation_error() -> None:
     with pytest.raises(ValidationError):
         Settings(cors_allowed_origins=("ui.example.com",))

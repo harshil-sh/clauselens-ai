@@ -44,3 +44,10 @@ Add:
 - isolate uploaded files
 - avoid logging full document contents
 - sanitize error responses
+
+## Observability notes
+
+- accept an incoming `X-Request-ID` header and generate one when absent
+- return `X-Request-ID` on every response so client-side errors can be correlated to backend logs
+- emit structured request completion logs with path, method, request id, and duration in milliseconds
+- include request ids on warning and error logs without logging raw document text

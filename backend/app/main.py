@@ -1,4 +1,6 @@
 import logging
+from time import perf_counter
+from uuid import uuid4
 
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
@@ -6,8 +8,35 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 
 from app.core.config import Settings, get_settings
+from app.core.logging import request_id_context
 
 logger = logging.getLogger(__name__)
+
+
+class RequestContextMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        request_id = request.headers.get("x-request-id") or f"req_{uuid4().hex}"
+        request.state.request_id = request_id
+
+        context_token = request_id_context.set(request_id)
+        started_at = perf_counter()
+        try:
+            response = await call_next(request)
+        finally:
+            duration_ms = round((perf_counter() - started_at) * 1000, 2)
+            logger.info(
+                "Request completed",
+                extra={
+                    "path": request.url.path,
+                    "method": request.method,
+                    "request_id": request_id,
+                    "duration_ms": duration_ms,
+                },
+            )
+            request_id_context.reset(context_token)
+
+        response.headers["X-Request-ID"] = request_id
+        return response
 
 
 class UploadSizeLimitMiddleware(BaseHTTPMiddleware):
@@ -65,11 +94,15 @@ def _configure_optional_features(app: FastAPI, settings: Settings) -> None:
     from fastapi.middleware.cors import CORSMiddleware
 
     app.add_middleware(
+        RequestContextMiddleware,
+    )
+    app.add_middleware(
         CORSMiddleware,
         allow_origins=list(settings.cors_allowed_origins),
         allow_credentials=False,
         allow_methods=["GET", "POST", "OPTIONS"],
-        allow_headers=["Accept", "Content-Type"],
+        allow_headers=["Accept", "Content-Type", "X-Request-ID"],
+        expose_headers=["X-Request-ID"],
     )
     app.add_middleware(
         UploadSizeLimitMiddleware,
