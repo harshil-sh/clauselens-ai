@@ -3,6 +3,8 @@ You are reviewing a business document for notable contractual or policy risks.
 Return valid JSON only.
 
 Identify concrete risks. Do not invent facts. If a risk is uncertain, describe it cautiously.
+Use only the clause ids provided in the extracted clauses list. If no clause clearly maps to a risk, return null for impacted_clause_id.
+Keep each title and recommendation concise and actionable.
 
 Output schema:
 {

@@ -62,4 +62,7 @@ def test_document_analysis_service_applies_summary_mapping() -> None:
     assert result.clauses[0].heading == "Term"
     assert result.clauses[0].category == "term"
     assert result.clauses[0].extracted_text == "The agreement runs for one year."
+    assert result.risk_flags[0].severity == "low"
+    assert result.risk_flags[0].title == "Renewal terms need review"
+    assert result.risk_flags[0].recommendation == "Confirm whether renewal should be automatic."
     assert result.risk_flags[0].impacted_clause_id == "clause_1"
